@@ -1,4 +1,4 @@
-ï»¿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer.jsx";
 import { Header } from "../components/Header.jsx";
@@ -7,13 +7,15 @@ import { useToast } from "../components/ToastProvider.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { config, formatCurrency, getServices, normalizeService, getReviews, createReview } from "../lib/api.js";
 
-const assetBase = import.meta.env.BASE_URL;\n\nconst fallbackServices = [
-  { id: 1, name: "Corte Masculino", description: "Corte moderno ou clÃ¡ssico.", price: 45 },
+const assetBase = import.meta.env.BASE_URL;
+
+const fallbackServices = [
+  { id: 1, name: "Corte Masculino", description: "Corte moderno ou clássico.", price: 45 },
   { id: 2, name: "Barba", description: "Modelagem com toalha quente.", price: 25 },
   { id: 3, name: "Sobrancelha", description: "Design e alinhamento.", price: 15 },
-  { id: 4, name: "PigmentaÃ§Ã£o", description: "Preenchimento e definiÃ§Ã£o.", price: 35 },
-  { id: 5, name: "Platinado", description: "DescoloraÃ§Ã£o e tonalizaÃ§Ã£o.", price: 120 },
-  { id: 6, name: "Relaxamento", description: "ReduÃ§Ã£o de volume e frizz.", price: 80 }
+  { id: 4, name: "Pigmentação", description: "Preenchimento e definição.", price: 35 },
+  { id: 5, name: "Platinado", description: "Descoloração e tonalização.", price: 120 },
+  { id: 6, name: "Relaxamento", description: "Redução de volume e frizz.", price: 80 }
 ];
 
 const iconRules = [
@@ -69,7 +71,7 @@ const Home = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [services, setServices] = useState([]);
-  const [statusMessage, setStatusMessage] = useState("Carregando serviÃ§os da API...");
+  const [statusMessage, setStatusMessage] = useState("Carregando serviços da API...");
   const [reviews, setReviews] = useState([]);
 
   const viewportRef = useRef(null);
@@ -102,7 +104,7 @@ const Home = () => {
 
   useEffect(() => {
     const load = async () => {
-      setStatusMessage("Carregando serviÃ§os da API...");
+      setStatusMessage("Carregando serviços da API...");
       try {
         const data = await getServices();
         const list = Array.isArray(data) ? data : data?.content || data?.servicos || [];
@@ -111,13 +113,13 @@ const Home = () => {
           .filter((item) => item.name && item.status !== false);
         if (!normalized.length) throw new Error("Lista vazia");
         setServices(normalized);
-        setStatusMessage(`${normalized.length} serviÃ§os disponÃ­veis.`);
+        setStatusMessage(`${normalized.length} serviços disponíveis.`);
       } catch (error) {
         setServices(fallbackServices);
-        setStatusMessage("NÃ£o foi possÃ­vel conectar com a API. Exibindo serviÃ§os padrÃ£o.");
+        setStatusMessage("Não foi possível conectar com a API. Exibindo serviços padrão.");
         toast({
           variant: "warning",
-          message: "API indisponÃ­vel no momento. Usando serviÃ§os padrÃ£o."
+          message: "API indisponível no momento. Usando serviços padrão."
         });
       }
     };
@@ -144,14 +146,14 @@ const Home = () => {
   const handleProtected = (event, target) => {
     if (token) return;
     event.preventDefault();
-    toast({ variant: "warning", message: "FaÃ§a login para agendar." });
+    toast({ variant: "warning", message: "Faça login para agendar." });
     navigate(`/login?redirect=${encodeURIComponent(target)}`);
   };
 
   const starsFor = (rating) => {
     const value = Math.max(1, Math.min(5, Number(rating) || 0));
-    const filled = "â˜…".repeat(value);
-    const empty = "â˜†".repeat(5 - value);
+    const filled = "★".repeat(value);
+    const empty = "☆".repeat(5 - value);
     return filled + empty;
   };
 
@@ -163,7 +165,7 @@ const Home = () => {
     const message = form.querySelector("#review-message")?.value.trim();
 
     if (!name || !rating || !message) {
-      toast({ variant: "warning", message: "Preencha nome, nota e comentÃ¡rio." });
+      toast({ variant: "warning", message: "Preencha nome, nota e comentário." });
       return;
     }
 
@@ -173,10 +175,10 @@ const Home = () => {
         const payload = saved || { ...review, dataDeCriacao: new Date().toISOString() };
         setReviews((prev) => [payload, ...prev]);
         form.reset();
-        toast({ variant: "success", message: "avaliaÃ§Ã£o enviada." });
+        toast({ variant: "success", message: "avaliação enviada." });
       })
       .catch(() => {
-        toast({ variant: "error", message: "NÃ£o foi possÃ­vel salvar sua avaliaÃ§Ã£o." });
+        toast({ variant: "error", message: "Não foi possível salvar sua avaliação." });
       });
   };
 
@@ -186,8 +188,8 @@ const Home = () => {
       <Header id="home" highlight="Agendar" />
       <main className="container">
         <section className="section-header" id="services" data-reveal>
-          <h2>Nossos ServiÃ§os</h2>
-          <p>Profissionalismo, estilo e tradiÃ§Ã£o.</p>
+          <h2>Nossos Serviços</h2>
+          <p>Profissionalismo, estilo e tradição.</p>
         </section>
 
         <section className="services-wrap" data-reveal="delay-1">
@@ -228,7 +230,7 @@ const Home = () => {
                 key={`dot-${index}`}
                 type="button"
                 className={`dot ${index === currentPage ? "active" : ""}`}
-                aria-label={`PÃ¡gina ${index + 1}`}
+                aria-label={`Página ${index + 1}`}
                 onClick={() => setCurrentPage(index)}
               />
             ))}
@@ -240,20 +242,20 @@ const Home = () => {
           <div className="about-card" data-reveal>
             <h2>Sobre a Barbearia</h2>
             <p>
-              TradiÃ§Ã£o, modernidade e atendimento de qualidade em um ambiente elegante,
-              confortÃ¡vel e pensado para vocÃª.
+              Tradição, modernidade e atendimento de qualidade em um ambiente elegante,
+              confortável e pensado para você.
             </p>
             <p className="muted">
-              Da recepÃ§Ã£o ao acabamento final, cada detalhe Ã© cuidado para entregar a sua
-              melhor versÃ£o.
+              Da recepção ao acabamento final, cada detalhe é cuidado para entregar a sua
+              melhor versão.
             </p>
           </div>
           <div className="about-card highlight" data-reveal="delay-1">
-            <h3>ExperiÃªncia Premium</h3>
+            <h3>Experiência Premium</h3>
             <ul className="about-list">
               <li>Profissionais especializados e consultoria de estilo.</li>
               <li>Produtos premium com tratamento para couro e barba.</li>
-              <li>Agendamento rÃ¡pido, com horÃ¡rios sob medida.</li>
+              <li>Agendamento rápido, com horários sob medida.</li>
             </ul>
             <a className="text-link" href="/agendamento" onClick={(event) => handleProtected(event, "/agendamento")}>
               Quero agendar
@@ -263,33 +265,33 @@ const Home = () => {
 
         <section className="info" id="info">
           <div className="section-header" data-reveal>
-            <h2>InformaÃ§Ãµes</h2>
+            <h2>Informações</h2>
             <p>Detalhes essenciais para sua visita.</p>
           </div>
 
           <div className="info-grid">
             <article className="info-card" data-reveal="delay-1">
               <div className="info-title">
-                <img src=`${assetBase}assets/icons/map-pin.svg` alt="" aria-hidden="true" />
-                <h3>LocalizaÃ§Ã£o</h3>
+                <img src={`${assetBase}assets/icons/map-pin.svg`} alt="" aria-hidden="true" />
+                <h3>Localização</h3>
               </div>
               <p>R. Manoel Lopes de Oliveira</p>
-              <p>Centro, CÃ¢ndido - PR, 85140-000</p>
+              <p>Centro, Cândido - PR, 85140-000</p>
             </article>
 
             <article className="info-card" data-reveal="delay-2">
               <div className="info-title">
-                <img src=`${assetBase}assets/icons/clock.svg` alt="" aria-hidden="true" />
-                <h3>HorÃ¡rio</h3>
+                <img src={`${assetBase}assets/icons/clock.svg`} alt="" aria-hidden="true" />
+                <h3>Horário</h3>
               </div>
-              <p>Seg a Sex: 09h Ã s 20h</p>
-              <p>SÃ¡b: 09h Ã s 19h</p>
+              <p>Seg a Sex: 09h às 20h</p>
+              <p>Sáb: 09h às 19h</p>
               <p>Dom: Fechado</p>
             </article>
 
             <article className="info-card" data-reveal="delay-3">
               <div className="info-title">
-                <img src=`${assetBase}assets/icons/phone.svg` alt="" aria-hidden="true" />
+                <img src={`${assetBase}assets/icons/phone.svg`} alt="" aria-hidden="true" />
                 <h3>Contato</h3>
               </div>
               <p>(42) 99960-1678</p>
@@ -300,7 +302,7 @@ const Home = () => {
 
         <section className="reviews" id="reviews">
           <div className="section-header" data-reveal>
-            <h2>AvaliaÃ§Ãµes</h2>
+            <h2>Avaliações</h2>
             <p>O que nossos clientes dizem.</p>
           </div>
 
@@ -308,23 +310,23 @@ const Home = () => {
             <article className="review-card" data-reveal="delay-1">
               <div className="review-header">
                 <span className="review-name">Carlos M.</span>
-                <span className="review-stars">â˜…â˜…â˜…â˜…â˜…</span>
+                <span className="review-stars">★★★★★</span>
               </div>
-              <p>Corte impecÃ¡vel, ambiente sofisticado e atendimento impecÃ¡vel.</p>
+              <p>Corte impecável, ambiente sofisticado e atendimento impecável.</p>
             </article>
             <article className="review-card" data-reveal="delay-2">
               <div className="review-header">
                 <span className="review-name">Felipe S.</span>
-                <span className="review-stars">â˜…â˜…â˜…â˜…â˜…</span>
+                <span className="review-stars">★★★★★</span>
               </div>
-              <p>Equipe extremamente profissional. O agendamento Ã© simples e rÃ¡pido.</p>
+              <p>Equipe extremamente profissional. O agendamento é simples e rápido.</p>
             </article>
             <article className="review-card" data-reveal="delay-3">
               <div className="review-header">
-                <span className="review-name">JoÃ£o P.</span>
-                <span className="review-stars">â˜…â˜…â˜…â˜…â˜†</span>
+                <span className="review-name">João P.</span>
+                <span className="review-stars">★★★★☆</span>
               </div>
-              <p>Ã“timo custo-benefÃ­cio e excelente consultoria de estilo.</p>
+              <p>Ótimo custo-benefício e excelente consultoria de estilo.</p>
             </article>
             {reviews.map((review, index) => (
               <article className="review-card" key={`${review.nome || review.name}-${index}`}>
@@ -339,8 +341,8 @@ const Home = () => {
 
           <div className="panel review-form" data-reveal="delay-4">
             <div className="panel-header">
-              <h3>Deixe sua avaliaÃ§Ã£o</h3>
-              <p className="muted">Compartilhe como foi sua experiÃªncia.</p>
+              <h3>Deixe sua avaliação</h3>
+              <p className="muted">Compartilhe como foi sua experiência.</p>
             </div>
             <div className="panel-body">
               <form className="panel-form" onSubmit={handleReviewSubmit}>
@@ -360,7 +362,7 @@ const Home = () => {
                     </select>
                   </div>
                   <div className="form-field">
-                    <label htmlFor="review-message">ComentÃ¡rio</label>
+                    <label htmlFor="review-message">Comentário</label>
                     <input
                       id="review-message"
                       type="text"
@@ -371,7 +373,7 @@ const Home = () => {
                 </div>
                 <div className="form-actions">
                   <button className="primary-action" type="submit">
-                    Enviar avaliaÃ§Ã£o
+                    Enviar avaliação
                   </button>
                 </div>
               </form>
@@ -381,7 +383,7 @@ const Home = () => {
 
         <section className="booking" id="booking" data-reveal>
           <h2>Agendamento</h2>
-          <p>Escolha o melhor dia, horÃ¡rio e finalize em poucos cliques.</p>
+          <p>Escolha o melhor dia, horário e finalize em poucos cliques.</p>
           <a
             className="booking-button"
             href="/agendamento"
@@ -389,7 +391,7 @@ const Home = () => {
           >
             Agendar
           </a>
-          <span className="booking-note">DisponÃ­vel para clientes logados com a API Barberia.</span>
+          <span className="booking-note">Disponível para clientes logados com a API Barberia.</span>
         </section>
       </main>
 
