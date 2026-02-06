@@ -1,0 +1,13 @@
+#booking-app[data-state="loading"] {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  
+  #booking-app[data-state="error"] {
+    border: 1px solid #ff4d4d;
+  }
+  
+  #booking-app[data-state="success"] {
+    border: 1px solid #4caf50;
+  }
+  
