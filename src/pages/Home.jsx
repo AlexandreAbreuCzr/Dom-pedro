@@ -73,6 +73,12 @@ const Home = () => {
   const [services, setServices] = useState([]);
   const [statusMessage, setStatusMessage] = useState("Carregando serviços da API...");
   const [reviews, setReviews] = useState([]);
+  const warnedRef = useRef(false);
+  const toastRef = useRef(toast);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const viewportRef = useRef(null);
   const trackRef = useRef(null);
@@ -103,6 +109,7 @@ const Home = () => {
   }, [services]);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setStatusMessage("Carregando serviços da API...");
       try {
@@ -112,19 +119,28 @@ const Home = () => {
           .map(normalizeService)
           .filter((item) => item.name && item.status !== false);
         if (!normalized.length) throw new Error("Lista vazia");
+        if (cancelled) return;
         setServices(normalized);
         setStatusMessage(`${normalized.length} serviços disponíveis.`);
+        warnedRef.current = false;
       } catch (error) {
+        if (cancelled) return;
         setServices(fallbackServices);
         setStatusMessage("Não foi possível conectar com a API. Exibindo serviços padrão.");
-        toast({
-          variant: "warning",
-          message: "API indisponível no momento. Usando serviços padrão."
-        });
+        if (!warnedRef.current) {
+          warnedRef.current = true;
+          toastRef.current({
+            variant: "warning",
+            message: "API indisponível no momento. Usando serviços padrão."
+          });
+        }
       }
     };
     load();
-  }, [toast]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const loadReviews = async () => {
