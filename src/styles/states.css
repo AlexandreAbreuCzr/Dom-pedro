@@ -1,4 +1,4 @@
-﻿#booking-app[data-state="loading"] {
+#booking-app[data-state="loading"] {
     opacity: 0.6;
     pointer-events: none;
   }
