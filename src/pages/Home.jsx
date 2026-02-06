@@ -330,10 +330,12 @@ const Home = () => {
             </article>
             {reviews.map((review, index) => (
               <article className="review-card" key={`${review.nome || review.name}-${index}`}>
-                <div className="review-header">
-                  <span className="review-name">{review.nome || review.name}</span>
-                  <span className="review-stars">{starsFor(review.nota ?? review.rating)}</span>
-                </div>
+                  <div className="review-header">
+                    <span className="review-name">{review.nome || review.name}</span>
+                    <span className="review-stars">
+                      {starsFor(review.nota ?? review.rating)}
+                    </span>
+                  </div>
                 <p>{review.comentario || review.message}</p>
               </article>
             ))}

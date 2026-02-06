@@ -18,12 +18,12 @@ const scrollToId = (event, id) => {
 };
 
 export const SideNav = () => (
-  <aside className="side-nav" aria-label="Atalhos de seÃ§Ãµes">
-    <a href="#home" aria-label="InÃ­cio" onClick={(event) => scrollToId(event, "home")}></a>
-    <a href="#services" aria-label="ServiÃ§os" onClick={(event) => scrollToId(event, "services")}></a>
+  <aside className="side-nav" aria-label="Atalhos de seções">
+    <a href="#home" aria-label="Início" onClick={(event) => scrollToId(event, "home")}></a>
+    <a href="#services" aria-label="Serviços" onClick={(event) => scrollToId(event, "services")}></a>
     <a href="#about" aria-label="Sobre" onClick={(event) => scrollToId(event, "about")}></a>
-    <a href="#info" aria-label="InformaÃ§Ãµes" onClick={(event) => scrollToId(event, "info")}></a>
-    <a href="#reviews" aria-label="AvaliaÃ§Ãµes" onClick={(event) => scrollToId(event, "reviews")}></a>
+    <a href="#info" aria-label="Informações" onClick={(event) => scrollToId(event, "info")}></a>
+    <a href="#reviews" aria-label="Avaliações" onClick={(event) => scrollToId(event, "reviews")}></a>
     <a href="#booking" aria-label="Agendamento" onClick={(event) => scrollToId(event, "booking")}></a>
   </aside>
 );

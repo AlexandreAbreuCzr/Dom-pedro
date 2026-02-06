@@ -7,10 +7,10 @@ const NotFound = () => (
     <Header />
     <main className="container" style={{ padding: "60px 0" }}>
       <section className="panel">
-        <h2>PÃ¡gina nÃ£o encontrada</h2>
-        <p className="muted">O endereÃ§o informado nÃ£o existe.</p>
+        <h2>Página não encontrada</h2>
+        <p className="muted">O endereço informado não existe.</p>
         <Link className="primary-action" to="/">
-          Voltar para o inÃ­cio
+          Voltar para o início
         </Link>
       </section>
     </main>

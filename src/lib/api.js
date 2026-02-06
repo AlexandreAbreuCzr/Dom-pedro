@@ -153,8 +153,15 @@ const formatTime = (timeStr) => {
 
 const normalizeService = (service = {}) => {
   const name = service.name || service.nome || service.titulo || service.descricao;
-  const price = parsePrice(service.price ?? service.preco ?? service.valor) ?? 0;
-  const status = service.status ?? service.ativo;
+  const price =
+    parsePrice(
+      service.price ??
+        service.preco ??
+        service.valor ??
+        service.precoUnitario ??
+        service.valorUnitario
+    ) ?? 0;
+  const status = service.status ?? service.ativo ?? true;
   return {
     id: service.id || service.codigo || service.servicoId || name,
     name,

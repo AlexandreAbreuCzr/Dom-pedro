@@ -165,7 +165,7 @@ const Admin = () => {
     const duration = Number(serviceForm.duration);
     const status = serviceForm.status === "true";
     if (!name || !price || !duration) {
-      toast({ variant: "warning", message: "Preencha nome, preÃ§o e duraÃ§Ã£o." });
+      toast({ variant: "warning", message: "Preencha nome, preço e duração." });
       return;
     }
 
@@ -173,14 +173,14 @@ const Admin = () => {
       if (serviceForm.id) {
         await updateService(serviceForm.id, { name, price, duracaoEmMinutos: duration, status });
         if (serviceForm.file) await updateServiceImage(serviceForm.id, serviceForm.file);
-        toast({ variant: "success", message: "ServiÃ§o atualizado." });
+        toast({ variant: "success", message: "Serviço atualizado." });
       } else {
         if (serviceForm.file) {
           await createServiceWithImage({ name, price, duracaoEmMinutos: duration }, serviceForm.file);
         } else {
           await createService({ name, price, duracaoEmMinutos: duration });
         }
-        toast({ variant: "success", message: "ServiÃ§o criado." });
+        toast({ variant: "success", message: "Serviço criado." });
       }
       resetServiceForm();
       loadServices();
@@ -190,12 +190,12 @@ const Admin = () => {
   };
 
   const handleDeleteService = async (service) => {
-    if (!confirm(`Excluir serviÃ§o "${service.name}"?`)) return;
+    if (!confirm(`Excluir serviço "${service.name}"?`)) return;
     try {
       await deleteService(service.id);
       toast({
         variant: "success",
-        message: "ServiÃ§o removido. Se havia agendamentos, ele foi desativado."
+        message: "Serviço removido. Se havia agendamentos, ele foi desativado."
       });
       loadServices();
     } catch (error) {
@@ -285,7 +285,7 @@ const Admin = () => {
   const handleCommissionRateSave = async () => {
     const percentual = Number(String(commissionRate || "").replace(",", "."));
     if (!Number.isFinite(percentual)) {
-      toast({ variant: "warning", message: "Informe um percentual vÃ¡lido." });
+      toast({ variant: "warning", message: "Informe um percentual válido." });
       return;
     }
     try {
@@ -346,10 +346,10 @@ const Admin = () => {
   const saldo = cashSummary.entrada - cashSummary.saida;
 
   const navLinks = [
-    { label: "ServiÃ§os", href: "/#services" },
+    { label: "Serviços", href: "/#services" },
     { label: "Sobre", href: "/#about" },
-    { label: "InformaÃ§Ãµes", href: "/#info" },
-    { label: "AvaliaÃ§Ãµes", href: "/#reviews" },
+    { label: "Informações", href: "/#info" },
+    { label: "Avaliações", href: "/#reviews" },
     { label: "Admin", href: "/admin" }
   ];
 
@@ -359,12 +359,12 @@ const Admin = () => {
       <main className="container admin-page">
         <section className="page-header" data-reveal>
           <h2>Painel Administrativo</h2>
-          <p>Gerencie usuÃ¡rios e serviÃ§os da barbearia.</p>
+          <p>Gerencie usuários e serviços da barbearia.</p>
         </section>
 
         <section className="panel" data-reveal="delay-1">
           <div className="panel-header">
-            <h3>UsuÃ¡rios</h3>
+            <h3>Usuários</h3>
             <div className="panel-actions">
               <input
                 type="text"
@@ -376,7 +376,7 @@ const Admin = () => {
                 value={userFilters.role}
                 onChange={(event) => setUserFilters((prev) => ({ ...prev, role: event.target.value }))}
               >
-                <option value="">Todos os papÃ©is</option>
+                <option value="">Todos os papéis</option>
                 <option value="ADMIN">Admin</option>
                 <option value="BARBEIRO">Barbeiro</option>
                 <option value="USER">Cliente</option>
@@ -446,14 +446,14 @@ const Admin = () => {
                 </article>
               ))}
             </div>
-            {usersEmpty ? <p className="muted">Nenhum usuÃ¡rio encontrado.</p> : null}
+            {usersEmpty ? <p className="muted">Nenhum usuário encontrado.</p> : null}
           </div>
         </section>
 
         <section className="panel" data-reveal="delay-2">
           <div className="panel-header">
-            <h3>ServiÃ§os</h3>
-            <p className="muted">Crie, edite e ative/desative serviÃ§os.</p>
+            <h3>Serviços</h3>
+            <p className="muted">Crie, edite e ative/desative serviços.</p>
           </div>
           <div className="panel-body">
             <form className="panel-form" onSubmit={handleServiceSubmit}>
@@ -472,7 +472,7 @@ const Admin = () => {
                   />
                 </div>
                 <div className="form-field">
-                  <label htmlFor="service-price">PreÃ§o</label>
+                  <label htmlFor="service-price">Preço</label>
                   <input
                     id="service-price"
                     type="text"
@@ -485,7 +485,7 @@ const Admin = () => {
                   />
                 </div>
                 <div className="form-field">
-                  <label htmlFor="service-duration">DuraÃ§Ã£o (min)</label>
+                  <label htmlFor="service-duration">Duração (min)</label>
                   <input
                     id="service-duration"
                     type="number"
@@ -509,7 +509,7 @@ const Admin = () => {
                     }
                   >
                     <option value="true">Sim</option>
-                    <option value="false">NÃ£o</option>
+                    <option value="false">Não</option>
                   </select>
                 </div>
                 <div className="form-field">
@@ -527,11 +527,11 @@ const Admin = () => {
               </div>
               <div className="form-actions">
                 <button className="primary-action" type="submit">
-                  {serviceForm.id ? "Salvar alteraÃ§Ãµes" : "Salvar serviÃ§o"}
+                  {serviceForm.id ? "Salvar alterações" : "Salvar serviço"}
                 </button>
                 {serviceForm.id ? (
                   <button className="ghost-action" type="button" onClick={resetServiceForm}>
-                    Cancelar ediÃ§Ã£o
+                    Cancelar edição
                   </button>
                 ) : null}
               </div>
@@ -543,7 +543,7 @@ const Admin = () => {
                   <div className="row-main">
                     <strong>{service.name}</strong>
                     <span>{formatCurrency(service.price)}</span>
-                    <span>DuraÃ§Ã£o: {service.duration} min</span>
+                    <span>Duração: {service.duration} min</span>
                   </div>
                   <div className="row-meta">
                     <span className={`tag ${service.status === false ? "tag--danger" : "tag--success"}`}>
@@ -561,14 +561,14 @@ const Admin = () => {
                 </article>
               ))}
             </div>
-            {servicesEmpty ? <p className="muted">Nenhum serviÃ§o cadastrado.</p> : null}
+            {servicesEmpty ? <p className="muted">Nenhum serviço cadastrado.</p> : null}
           </div>
         </section>
 
         <section className="panel" data-reveal="delay-3">
           <div className="panel-header">
             <h3>Indisponibilidades</h3>
-            <p className="muted">Registre perÃ­odos em que barbeiros nÃ£o atendem.</p>
+            <p className="muted">Registre períodos em que barbeiros não atendem.</p>
           </div>
           <div className="panel-body">
             <form className="panel-form" onSubmit={handleIndisponibilidadeSubmit}>
@@ -601,14 +601,14 @@ const Admin = () => {
                     onChange={(event) => setIndForm((prev) => ({ ...prev, tipo: event.target.value }))}
                     required
                   >
-                    <option value="FERIAS">FÃ©rias</option>
+                    <option value="FERIAS">Férias</option>
                     <option value="PAUSA">Pausa</option>
-                    <option value="MANUTENCAO">ManutenÃ§Ã£o</option>
+                    <option value="MANUTENCAO">Manutenção</option>
                     <option value="OUTRO">Outro</option>
                   </select>
                 </div>
                 <div className="form-field">
-                  <label htmlFor="ind-inicio">InÃ­cio</label>
+                  <label htmlFor="ind-inicio">Início</label>
                   <input
                     id="ind-inicio"
                     type="datetime-local"
@@ -669,7 +669,7 @@ const Admin = () => {
 
         <section className="panel" data-reveal="delay-4">
           <div className="panel-header">
-            <h3>ComissÃµes</h3>
+            <h3>Comissões</h3>
             <div className="panel-actions">
               <input
                 type="date"
@@ -738,7 +738,7 @@ const Admin = () => {
                       max="100"
                       step="0.01"
                       defaultValue={item.percentual ?? ""}
-                      title="Percentual da comissÃ£o"
+                      title="Percentual da comissão"
                     />
                     <button
                       className="ghost-action"
@@ -747,7 +747,7 @@ const Admin = () => {
                         const input = event.currentTarget.parentElement?.querySelector("input");
                         const percentual = Number(String(input?.value || "").replace(",", "."));
                         if (!Number.isFinite(percentual)) {
-                          toast({ variant: "warning", message: "Informe um percentual vÃ¡lido." });
+                          toast({ variant: "warning", message: "Informe um percentual válido." });
                           return;
                         }
                         try {
@@ -766,7 +766,7 @@ const Admin = () => {
                 </article>
               ))}
             </div>
-            {commissionsEmpty ? <p className="muted">Nenhuma comissÃ£o encontrada.</p> : null}
+            {commissionsEmpty ? <p className="muted">Nenhuma comissão encontrada.</p> : null}
           </div>
         </section>
 
@@ -857,7 +857,7 @@ const Admin = () => {
               </div>
               <div className="form-actions">
                 <button className="primary-action" type="submit">
-                  Adicionar lanÃ§amento
+                  Adicionar lançamento
                 </button>
               </div>
             </form>
@@ -911,7 +911,7 @@ const Admin = () => {
                 </article>
               ))}
             </div>
-            {cashEmpty ? <p className="muted">Nenhum lanÃ§amento encontrado.</p> : null}
+            {cashEmpty ? <p className="muted">Nenhum lançamento encontrado.</p> : null}
           </div>
         </section>
       </main>
