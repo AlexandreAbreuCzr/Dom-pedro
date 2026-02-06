@@ -896,7 +896,7 @@ const Admin = () => {
                         item.valorBarbearia != null ? `Barbearia: ${formatCurrency(item.valorBarbearia)}` : null,
                         item.percentualComissao != null ? `Taxa: ${item.percentualComissao}%` : null]
                           .filter(Boolean)
-                          .join(" â€¢ ")}
+                          .join(" • ")}
                       </span>
                     ) : null}
                     <span className="tag">

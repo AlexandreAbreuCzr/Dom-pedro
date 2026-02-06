@@ -85,7 +85,7 @@ const Register = () => {
 
           <div className="input-group">
             <label htmlFor="password">Crie uma senha</label>
-            <input type="password" id="password" name="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required />
+            <input type="password" id="password" name="password" placeholder="••••••••" required />
           </div>
 
           <button type="submit" disabled={loading}>

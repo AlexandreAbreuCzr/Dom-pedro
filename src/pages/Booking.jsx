@@ -343,7 +343,7 @@ const Booking = () => {
                   <option value="">Selecione um serviço</option>
                   {servicesOptions.map((service) => (
                     <option key={service.id} value={service.id}>
-                      {service.name} â€¢ {formatCurrency(service.price)}
+                      {service.name} • {formatCurrency(service.price)}
                     </option>
                   ))}
                 </select>

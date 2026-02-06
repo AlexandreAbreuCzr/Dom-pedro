@@ -14,7 +14,9 @@ const Login = () => {
   const [formError, setFormError] = useState("");
   const [resetError, setResetError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const resetBusy = sendingCode || resetSubmitting;
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -48,13 +50,13 @@ const Login = () => {
       return;
     }
     try {
-      setResetLoading(true);
+      setSendingCode(true);
       await requestPasswordReset({ email });
       toast({ variant: "success", message: "Código enviado para o e-mail informado." });
     } catch (error) {
       setResetError(getErrorMessage(error));
     } finally {
-      setResetLoading(false);
+      setSendingCode(false);
     }
   };
 
@@ -70,14 +72,14 @@ const Login = () => {
       return;
     }
     try {
-      setResetLoading(true);
+      setResetSubmitting(true);
       await resetPassword({ email, code, newPassword });
       toast({ variant: "success", message: "Senha atualizada. Faça login." });
       event.currentTarget.reset();
     } catch (error) {
       setResetError(getErrorMessage(error));
     } finally {
-      setResetLoading(false);
+      setResetSubmitting(false);
     }
   };
 
@@ -112,7 +114,7 @@ const Login = () => {
 
           <div className="input-group">
             <label htmlFor="password">Senha</label>
-            <input type="password" id="password" name="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required />
+            <input type="password" id="password" name="password" placeholder="••••••••" required />
           </div>
 
           <button type="submit" disabled={loading}>
@@ -145,15 +147,15 @@ const Login = () => {
 
             <div className="input-group">
               <label htmlFor="reset-password">Nova senha</label>
-              <input type="password" id="reset-password" name="reset-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
+              <input type="password" id="reset-password" name="reset-password" placeholder="••••••••" />
             </div>
 
             <div className="reset-actions">
-              <button type="button" className="ghost-action" onClick={handleResetSend} disabled={resetLoading}>
-                {resetLoading ? "Enviando..." : "Enviar código"}
+              <button type="button" className="ghost-action" onClick={handleResetSend} disabled={resetBusy}>
+                {sendingCode ? "Enviando..." : "Enviar código"}
               </button>
-              <button type="submit" disabled={resetLoading}>
-                {resetLoading ? "Atualizando..." : "Atualizar senha"}
+              <button type="submit" disabled={resetBusy}>
+                {resetSubmitting ? "Atualizando..." : "Atualizar senha"}
               </button>
             </div>
           </form>

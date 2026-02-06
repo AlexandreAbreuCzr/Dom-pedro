@@ -1,0 +1,387 @@
+﻿<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Barbearia Dom Pedro — Documentação do Cliente</title>
+    <style>
+      @page { size: A4; margin: 20mm; }
+      * { box-sizing: border-box; }
+      body { font-family: "Segoe UI", Calibri, Arial, sans-serif; color: #1f1f1f; line-height: 1.5; font-size: 11.5pt; }
+      h1, h2, h3 { margin: 0 0 8px; }
+      h1 { font-size: 26pt; }
+      h2 { font-size: 16pt; border-bottom: 2px solid #eac452; padding-bottom: 6px; margin-top: 18px; }
+      h3 { font-size: 13pt; margin-top: 14px; color: #3b2f0b; }
+      p { margin: 6px 0 10px; }
+      ul, ol { margin: 6px 0 10px 18px; }
+      li { margin: 4px 0; }
+      table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 11pt; }
+      th, td { border: 1px solid #d9d9d9; padding: 6px 8px; vertical-align: top; }
+      th { background: #f6e2a2; text-align: left; }
+      .muted { color: #666; }
+      .cover { display: grid; gap: 14px; }
+      .tag { display: inline-block; background: #f6e2a2; color: #3b2f0b; padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 10.5pt; }
+      .meta { display: grid; gap: 6px; font-size: 11pt; }
+      .page-break { page-break-after: always; }
+      .note { background: #fff7e1; border-left: 4px solid #eac452; padding: 10px 12px; margin: 8px 0 12px; }
+      .doc-image { width: 100%; border: 1px solid #e0e0e0; border-radius: 10px; margin: 10px 0 16px; }
+    </style>
+  </head>
+  <body>
+    <section class="cover">
+      <span class="tag">Documentação do Cliente</span>
+      <h1>Barbearia Dom Pedro — Documentação do Cliente</h1>
+      <p class="muted">Sistema de agendamento e gestão</p>
+      <div class="meta">
+        <div><strong>Projeto:</strong> Sistema de agendamentos e gestão da barbearia</div>
+        <div><strong>Cliente:</strong> Barbearia Dom Pedro</div>
+        <div><strong>Data:</strong> 06/02/2026</div>
+        <div><strong>Versão:</strong> 1.0</div>
+        <div><strong>Responsável técnico:</strong> ___________________________</div>
+        <div><strong>Contato de suporte:</strong> ___________________________</div>
+      </div>
+      <img class="doc-image" src="docs/imagens/capa.svg" alt="Capa do sistema" />
+    </section>
+
+    <div class="page-break"></div>
+
+    <h2>Sumário</h2>
+    <ol>
+      <li>Visão geral do sistema</li>
+      <li>Acesso e primeiros passos</li>
+      <li>Perfis e permissões</li>
+      <li>Site público (página inicial)</li>
+      <li>Cadastro, login e recuperação de senha</li>
+      <li>Meu Perfil (dados e senha)</li>
+      <li>Agendamentos (cliente)</li>
+      <li>Painel do Barbeiro</li>
+      <li>Painel Administrativo</li>
+      <li>Regras, políticas e status</li>
+      <li>Boas práticas e rotina do gestor</li>
+      <li>Dúvidas frequentes (FAQ)</li>
+      <li>Suporte e manutenção</li>
+      <li>Observações finais</li>
+    </ol>
+
+    <div class="page-break"></div>
+
+    <h2>1. Visão geral do sistema</h2>
+    <p>O <strong>Sistema Barbearia Dom Pedro</strong> centraliza os agendamentos, organiza o atendimento e oferece controle operacional em um único lugar.</p>
+    <p>Ele funciona via navegador (celular ou computador) e integra-se à <strong>API Barberia</strong> para serviços, usuários, comissões e caixa.</p>
+
+    <h3>1.1 Componentes principais</h3>
+    <ul>
+      <li><strong>Página pública</strong> com serviços, informações e avaliações.</li>
+      <li><strong>Agendamentos</strong> para clientes (criação, remarcação e cancelamento).</li>
+      <li><strong>Perfil do usuário</strong> (dados e senha).</li>
+      <li><strong>Painel do Barbeiro</strong> (agenda, comissões e indisponibilidades).</li>
+      <li><strong>Painel Administrativo</strong> (usuários, serviços, indisponibilidades, comissões e caixa).</li>
+    </ul>
+
+    <h3>1.2 Fluxo rápido do atendimento</h3>
+    <ol>
+      <li>Cliente cria conta e faz login.</li>
+      <li>Cliente agenda um serviço.</li>
+      <li>Barbeiro aceita o agendamento.</li>
+      <li>Atendimento é concluído.</li>
+      <li>Comissões e caixa são atualizados.</li>
+    </ol>
+
+    <h3>1.3 Quando a API está indisponível</h3>
+    <ul>
+      <li>O site exibe <strong>serviços padrão</strong> para não ficar vazio.</li>
+      <li>Algumas ações (agendamentos, avaliações e gestão) podem ficar limitadas até a API voltar.</li>
+    </ul>
+    <img class="doc-image" src="docs/imagens/tela-inicial.svg" alt="Tela inicial do sistema" />
+
+    <div class="page-break"></div>
+
+    <h2>2. Acesso e primeiros passos</h2>
+    <ul>
+      <li><strong>Endereço do sistema:</strong> ___________________________</li>
+      <li><strong>Requisitos:</strong> internet ativa e navegador atualizado.</li>
+      <li><strong>Acesso ao painel:</strong> somente usuários com permissão (barbeiro ou administrador).</li>
+    </ul>
+
+    <h3>2.1 Navegação básica</h3>
+    <ul>
+      <li>Menu principal com: <strong>Serviços, Sobre, Informações, Avaliações, Agendar</strong>.</li>
+      <li>Botões <strong>Entrar</strong> e <strong>Criar conta</strong> direcionam para login e cadastro.</li>
+      <li>O botão <strong>Agendar</strong> leva ao formulário de marcação (exige login).</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>3. Perfis e permissões</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Perfil</th>
+          <th>Quem usa</th>
+          <th>O que pode fazer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cliente (USER)</strong></td>
+          <td>Clientes da barbearia</td>
+          <td>Agendar, remarcar, cancelar, avaliar e atualizar perfil.</td>
+        </tr>
+        <tr>
+          <td><strong>Barbeiro (BARBEIRO)</strong></td>
+          <td>Profissionais</td>
+          <td>Ver/aceitar agendamentos, concluir ou cancelar atendimentos próprios, ver comissões e registrar indisponibilidades.</td>
+        </tr>
+        <tr>
+          <td><strong>Administrador (ADMIN)</strong></td>
+          <td>Dono/gestor</td>
+          <td>Tudo do barbeiro + gerenciar usuários, serviços, indisponibilidades, comissões e caixa.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2>4. Site público (página inicial)</h2>
+
+    <h3>4.1 Serviços</h3>
+    <ul>
+      <li>Cards com <strong>nome, descrição, preço e imagem</strong>.</li>
+      <li>Botão <strong>Agendar</strong> exige login.</li>
+      <li>Se a API falhar, serviços padrão aparecem automaticamente.</li>
+    </ul>
+
+    <h3>4.2 Sobre e Informações</h3>
+    <ul>
+      <li>Apresentação da barbearia.</li>
+      <li>Endereço, horário de funcionamento e contato.</li>
+    </ul>
+
+    <h3>4.3 Avaliações</h3>
+    <ul>
+      <li>Exibe avaliações dos clientes.</li>
+      <li>Formulário com <strong>nome, nota (1 a 5) e comentário</strong>.</li>
+      <li>Após enviar, a avaliação aparece quando a API confirma.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>5. Cadastro, login e recuperação de senha</h2>
+
+    <h3>5.1 Criar conta</h3>
+    <p>Campos obrigatórios: Usuário, Nome, E-mail e Senha. Telefone é opcional.</p>
+    <p>Ao finalizar, a conta é criada como <strong>Cliente (USER)</strong>.</p>
+
+    <h3>5.2 Login</h3>
+    <ul>
+      <li>Login pode ser feito com <strong>usuário ou e-mail</strong>.</li>
+      <li>Após login, o sistema redireciona para a página desejada.</li>
+    </ul>
+
+    <h3>5.3 Recuperar senha</h3>
+    <ol>
+      <li>Informe o e-mail e clique em <strong>Enviar código</strong>.</li>
+      <li>Digite o código recebido por e-mail.</li>
+      <li>Informe a nova senha e confirme.</li>
+    </ol>
+    <div class="note">
+      Recomendação: use senhas com <strong>no mínimo 8 caracteres</strong>.
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>6. Meu Perfil (dados e senha)</h2>
+    <ul>
+      <li>Atualize <strong>nome</strong> e <strong>telefone</strong>.</li>
+      <li>Altere a <strong>senha</strong> (nova senha + confirmação).</li>
+      <li><strong>Usuário e e-mail</strong> não são alteráveis nessa tela.</li>
+      <li>ADMIN ou BARBEIRO verão atalhos para seus painéis.</li>
+      <li>O botão <strong>Sair</strong> encerra a sessão.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>7. Agendamentos (cliente)</h2>
+
+    <h3>7.1 Passo a passo</h3>
+    <ol>
+      <li>Acesse <strong>Agendar</strong>.</li>
+      <li>Escolha o <strong>profissional</strong> (opcional).</li>
+      <li>Selecione o <strong>serviço</strong>.</li>
+      <li>Informe <strong>data</strong> e <strong>horário</strong>.</li>
+      <li>Confirme o agendamento.</li>
+    </ol>
+    <p>O sistema exibe a <strong>duração média</strong> do serviço ao selecionar o item.</p>
+
+    <h3>7.2 Regras de agendamento</h3>
+    <ul>
+      <li>Necessário <strong>15 minutos de antecedência</strong>.</li>
+      <li><strong>Domingo</strong> não está disponível.</li>
+      <li>Horários exibidos: <strong>09h às 12h</strong> e <strong>13h às 20h</strong>.</li>
+      <li>Datas passadas não podem ser selecionadas.</li>
+    </ul>
+    <div class="note">
+      Para trocar serviço ou profissional, cancele e faça um novo agendamento.
+    </div>
+
+    <h3>7.3 Meus agendamentos</h3>
+    <ul>
+      <li>Lista com <strong>data, hora, profissional e status</strong>.</li>
+      <li><strong>Remarcar</strong> altera apenas data e hora.</li>
+      <li>Cancelamento permitido quando o status é <strong>REQUISITADO</strong> ou <strong>AGENDADO</strong>.</li>
+    </ul>
+    <img class="doc-image" src="docs/imagens/agenda.svg" alt="Tela de agendamento" />
+
+    <div class="page-break"></div>
+
+    <h2>8. Painel do Barbeiro</h2>
+    <p>Disponível para usuários com papel <strong>BARBEIRO</strong> (ou <strong>ADMIN</strong>).</p>
+
+    <h3>8.1 Agendamentos</h3>
+    <ul>
+      <li>Filtros por <strong>status</strong> e <strong>data</strong>.</li>
+      <li>Admin também pode filtrar por <strong>profissional</strong>.</li>
+      <li>Ações: <strong>Aceitar</strong>, <strong>Concluir</strong> e <strong>Cancelar</strong>.</li>
+    </ul>
+    <div class="note">
+      A conclusão só é liberada <strong>10 minutos após</strong> o horário marcado.
+    </div>
+
+    <h3>8.2 Comissões</h3>
+    <ul>
+      <li>Lista por período com <strong>percentual</strong> e <strong>valor</strong>.</li>
+      <li>Total exibido no resumo.</li>
+    </ul>
+
+    <h3>8.3 Indisponibilidades</h3>
+    <ul>
+      <li>Tipos: <strong>Férias, Pausa, Manutenção, Outro</strong>.</li>
+      <li>Informe <strong>início</strong> e <strong>fim</strong>.</li>
+      <li>Remova quando precisar liberar agenda.</li>
+    </ul>
+    <img class="doc-image" src="docs/imagens/painel-barbeiro.svg" alt="Painel do barbeiro" />
+
+    <div class="page-break"></div>
+
+    <h2>9. Painel Administrativo</h2>
+    <p>Acesso exclusivo para <strong>ADMIN</strong>.</p>
+
+    <h3>9.1 Usuários</h3>
+    <ul>
+      <li>Filtros por <strong>nome</strong>, <strong>papel</strong> e <strong>status</strong>.</li>
+      <li>Alterar papel: <strong>ADMIN, BARBEIRO, USER</strong>.</li>
+      <li><strong>Ativar/Desativar</strong> usuários.</li>
+    </ul>
+
+    <h3>9.2 Serviços</h3>
+    <ul>
+      <li>Crie/edite <strong>nome, preço, duração e status</strong>.</li>
+      <li><strong>Imagem</strong> é opcional (o sistema usa ícone padrão se não houver).</li>
+      <li>Excluir serviço remove o item; se houver agendamentos, ele é desativado.</li>
+    </ul>
+
+    <h3>9.3 Indisponibilidades</h3>
+    <ul>
+      <li>Gerencie indisponibilidades de <strong>qualquer barbeiro</strong>.</li>
+      <li>Recomendado para férias e eventos especiais.</li>
+    </ul>
+
+    <h3>9.4 Comissões</h3>
+    <ul>
+      <li>Defina a <strong>taxa global</strong> de comissão.</li>
+      <li>Opção <strong>Aplicar em todas</strong> para atualizar tudo de uma vez.</li>
+      <li>Ajuste individual por item quando necessário.</li>
+      <li>Filtro por período.</li>
+    </ul>
+
+    <h3>9.5 Caixa</h3>
+    <ul>
+      <li>Lançamentos de <strong>Entrada</strong> e <strong>Saída</strong> com descrição e valor.</li>
+      <li>Associação opcional a um barbeiro.</li>
+      <li>Filtro por <strong>período</strong> e <strong>tipo</strong>.</li>
+      <li>Resumo automático com <strong>Entradas, Saídas e Saldo</strong>.</li>
+      <li>Lançamentos podem vir de atendimentos concluídos ou registros manuais.</li>
+    </ul>
+    <img class="doc-image" src="docs/imagens/painel-admin.svg" alt="Painel administrativo" />
+    <img class="doc-image" src="docs/imagens/caixa-relatorios.svg" alt="Caixa e comissões" />
+
+    <div class="page-break"></div>
+
+    <h2>10. Regras, políticas e status</h2>
+
+    <h3>10.1 Status do agendamento</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Significado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>REQUISITADO</strong></td>
+          <td>Solicitação criada pelo cliente, aguardando aceitação.</td>
+        </tr>
+        <tr>
+          <td><strong>AGENDADO</strong></td>
+          <td>Já foi aceito por um barbeiro.</td>
+        </tr>
+        <tr>
+          <td><strong>CONCLUIDO</strong></td>
+          <td>Atendimento finalizado.</td>
+        </tr>
+        <tr>
+          <td><strong>CANCELADO</strong></td>
+          <td>Cancelado pelo cliente, barbeiro ou admin.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>10.2 Regras importantes</h3>
+    <ul>
+      <li>Conclusão só é liberada <strong>10 minutos após</strong> o horário marcado.</li>
+      <li>Cancelamento disponível enquanto estiver <strong>REQUISITADO</strong> ou <strong>AGENDADO</strong>.</li>
+      <li>A troca de serviço/profissional exige <strong>novo agendamento</strong>.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>11. Boas práticas e rotina do gestor</h2>
+    <ul>
+      <li><strong>Atualize serviços</strong> sempre que houver mudança de preço, duração ou descrição.</li>
+      <li><strong>Revise permissões</strong> quando entra ou sai alguém da equipe.</li>
+      <li><strong>Registre indisponibilidades</strong> com antecedência.</li>
+      <li><strong>Feche o caixa diariamente</strong> e confira entradas/saídas.</li>
+      <li><strong>Acompanhe comissões</strong> e ajuste a taxa quando necessário.</li>
+      <li><strong>Monitore avaliações</strong> para manter a qualidade do atendimento.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>12. Dúvidas frequentes (FAQ)</h2>
+    <p><strong>1. Não consigo agendar para hoje. Por quê?</strong></p>
+    <p>Provavelmente falta a antecedência mínima de 15 minutos ou a data é domingo.</p>
+    <p><strong>2. O botão “Concluir” não aparece para o barbeiro.</strong></p>
+    <p>Ele só libera 10 minutos após o horário marcado.</p>
+    <p><strong>3. Um serviço não aparece para o cliente.</strong></p>
+    <p>Verifique se o serviço está ativo no painel admin ou se a API está indisponível.</p>
+    <p><strong>4. Esqueci a senha.</strong></p>
+    <p>Use a seção “Esqueceu a senha” na tela de login e siga o envio de código.</p>
+    <p><strong>5. Não vejo agendamentos no painel do barbeiro.</strong></p>
+    <p>Confirme os filtros (status/data) e se o usuário está logado com perfil correto.</p>
+
+    <div class="page-break"></div>
+
+    <h2>13. Suporte e manutenção</h2>
+    <p>Para suporte técnico ou ajustes, utilize o contato abaixo:</p>
+    <p><strong>Suporte técnico:</strong> ___________________________</p>
+    <p><strong>E-mail:</strong> ___________________________</p>
+    <p><strong>WhatsApp:</strong> ___________________________</p>
+
+    <div class="page-break"></div>
+
+    <h2>14. Observações finais</h2>
+    <p>Este sistema foi desenvolvido para oferecer <strong>organização, agilidade e experiência premium</strong> aos clientes e ao time da Barbearia Dom Pedro.</p>
+    <p>Sua utilização correta garante maior satisfação, fidelização e controle da operação.</p>
+    <p>O PDF inclui imagens ilustrativas dos principais painéis para facilitar a apresentação ao cliente.</p>
+  </body>
+</html>

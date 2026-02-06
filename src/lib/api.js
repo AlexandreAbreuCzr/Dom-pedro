@@ -1,5 +1,6 @@
 const defaultConfig = {
   baseUrl: "https://dom-pedro-api.onrender.com",
+  timeoutMs: 15000,
   endpoints: {
     login: "/auth/login",
     register: "/auth/register",
@@ -219,6 +220,20 @@ const parseResponse = async (response) => {
   return response.text().catch(() => "");
 };
 
+const requestWithTimeout = async (url, options = {}) => {
+  const { timeoutMs = config.timeoutMs, ...fetchOptions } = options;
+  if (!timeoutMs || typeof AbortController === "undefined") {
+    return fetch(url, fetchOptions);
+  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...fetchOptions, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 const apiRequest = async (path, options = {}) => {
   const url = `${config.baseUrl.replace(/\/$/, "")}${path}`;
   const headers = {
@@ -230,10 +245,18 @@ const apiRequest = async (path, options = {}) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
+  let response;
+  try {
+    response = await requestWithTimeout(url, {
+      ...options,
+      headers
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw { status: 408, data: { message: "Tempo de resposta excedido. Tente novamente." } };
+    }
+    throw error;
+  }
 
   const data = await parseResponse(response);
   if (!response.ok) {
@@ -250,11 +273,19 @@ const apiRequestForm = async (path, formData, options = {}) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    method: options.method || "POST",
-    headers,
-    body: formData
-  });
+  let response;
+  try {
+    response = await requestWithTimeout(url, {
+      method: options.method || "POST",
+      headers,
+      body: formData
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw { status: 408, data: { message: "Tempo de resposta excedido. Tente novamente." } };
+    }
+    throw error;
+  }
 
   const data = await parseResponse(response);
   if (!response.ok) {

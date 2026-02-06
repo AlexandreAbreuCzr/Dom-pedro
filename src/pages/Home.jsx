@@ -26,13 +26,26 @@ const iconRules = [
   { match: /corte|cabelo/i, icon: `${assetBase}assets/icons/scissors.svg` }
 ];
 
-const resolveIcon = (name = "", imageUrl) => {
-  if (imageUrl) {
-    const base = config?.baseUrl?.replace(/\/$/, "") || "";
-    return imageUrl.startsWith("http") ? imageUrl : `${base}${imageUrl}`;
-  }
+const getFallbackIcon = (name = "") => {
   const rule = iconRules.find((item) => item.match.test(name));
   return rule ? rule.icon : `${assetBase}assets/icons/clipper.svg`;
+};
+
+const resolveServiceImage = (name = "", imageUrl) => {
+  const fallback = getFallbackIcon(name);
+  if (!imageUrl || typeof imageUrl !== "string") return fallback;
+  const cleaned = imageUrl.trim();
+  if (!cleaned || cleaned.toLowerCase() === "null") return fallback;
+  const base = config?.baseUrl?.replace(/\/$/, "") || "";
+  const normalized = cleaned.startsWith("http")
+    ? cleaned
+    : `${base}/${cleaned.replace(/^\/+/, "")}`;
+  return normalized || fallback;
+};
+
+const handleServiceImageError = (event, name) => {
+  event.currentTarget.onerror = null;
+  event.currentTarget.src = getFallbackIcon(name);
 };
 
 const useScrollSpy = () => {
@@ -220,7 +233,11 @@ const Home = () => {
               {serviceList.map((service) => (
                 <article key={service.id} className="service-card">
                   <div className="service-thumb">
-                    <img src={resolveIcon(service.name, service.imageUrl)} alt={service.name} />
+                    <img
+                      src={resolveServiceImage(service.name, service.imageUrl)}
+                      alt={service.name}
+                      onError={(event) => handleServiceImageError(event, service.name)}
+                    />
                   </div>
                   <div className="service-info">
                     <h3>{service.name}</h3>
