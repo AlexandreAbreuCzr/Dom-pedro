@@ -1,4 +1,4 @@
-﻿const getHeaderOffset = () => {
+const getHeaderOffset = () => {
   const raw = getComputedStyle(document.documentElement).getPropertyValue("--header-height");
   const value = parseFloat(raw);
   return Number.isFinite(value) ? value : 0;

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider.jsx";
 import { getErrorMessage, register } from "../lib/api.js";

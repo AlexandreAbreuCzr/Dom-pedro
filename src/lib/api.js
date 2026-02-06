@@ -1,4 +1,4 @@
-﻿const defaultConfig = {
+const defaultConfig = {
   baseUrl: "https://dom-pedro-api.onrender.com",
   endpoints: {
     login: "/auth/login",
