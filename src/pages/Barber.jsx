@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer.jsx";
 import { Header } from "../components/Header.jsx";
@@ -111,7 +111,7 @@ const Barber = () => {
 
   const getServiceName = (serviceId) => {
     const service = services.find((item) => String(item.id) === String(serviceId));
-    return service?.name || (serviceId ? `Servi�o #${serviceId}` : "Servi�o");
+    return service?.name || (serviceId ? `Serviço #${serviceId}` : "Serviço");
   };
 
   const loadAppointments = async (currentUser) => {
@@ -215,10 +215,10 @@ const Barber = () => {
   const commissionTotal = commissions.reduce((sum, item) => sum + Number(item.valor || 0), 0);
 
   const navLinks = [
-    { label: "Serviços", href: "/#services" },
+    { label: "ServiÃ§os", href: "/#services" },
     { label: "Sobre", href: "/#about" },
-    { label: "Informações", href: "/#info" },
-    { label: "Avaliações", href: "/#reviews" },
+    { label: "InformaÃ§Ãµes", href: "/#info" },
+    { label: "AvaliaÃ§Ãµes", href: "/#reviews" },
     { label: "Barbeiro", href: "/barbeiro" }
   ];
 
@@ -288,7 +288,7 @@ const Barber = () => {
                 <article key={appointment.id} className="row-card">
                   <div className="row-main">
                     <strong>{getServiceName(appointment.serviceId)}</strong>
-                    <span>{formatDateBr(appointment.date)} às {appointment.time}</span>
+                    <span>{formatDateBr(appointment.date)} Ã s {appointment.time}</span>
                     <span>Barbeiro: {appointment.barbeiroUsername || "-"}</span>
                     <span>Cliente: {appointment.clienteUsername || "-"}</span>
                   </div>
@@ -404,14 +404,14 @@ const Barber = () => {
                 </article>
               ))}
             </div>
-            {commissionsEmpty ? <p className="muted">Nenhuma comissão encontrada.</p> : null}
+            {commissionsEmpty ? <p className="muted">Nenhuma comissÃ£o encontrada.</p> : null}
           </div>
         </section>
 
         <section className="panel" data-reveal="delay-3">
           <div className="panel-header">
             <h3>Indisponibilidades</h3>
-            <p className="muted">Informe períodos em que você não atende.</p>
+            <p className="muted">Informe perÃ­odos em que vocÃª nÃ£o atende.</p>
           </div>
           <div className="panel-body">
             <form className="panel-form" onSubmit={handleIndisponibilidadeSubmit}>
@@ -424,14 +424,14 @@ const Barber = () => {
                     onChange={(event) => setIndForm((prev) => ({ ...prev, tipo: event.target.value }))}
                     required
                   >
-                    <option value="FERIAS">Férias</option>
+                    <option value="FERIAS">FÃ©rias</option>
                     <option value="PAUSA">Pausa</option>
-                    <option value="MANUTENCAO">Manutenção</option>
+                    <option value="MANUTENCAO">ManutenÃ§Ã£o</option>
                     <option value="OUTRO">Outro</option>
                   </select>
                 </div>
                 <div className="form-field">
-                  <label htmlFor="indisponibilidade-inicio">Início</label>
+                  <label htmlFor="indisponibilidade-inicio">InÃ­cio</label>
                   <input
                     id="indisponibilidade-inicio"
                     type="datetime-local"

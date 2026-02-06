@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../components/ToastProvider.jsx";
 import { useAuth } from "../lib/auth.jsx";
@@ -72,7 +72,7 @@ const Login = () => {
     try {
       setResetLoading(true);
       await resetPassword({ email, code, newPassword });
-      toast({ variant: "success", message: "Senha atualizada. Faça login." });
+      toast({ variant: "success", message: "Senha atualizada. FaÃ§a login." });
       event.currentTarget.reset();
     } catch (error) {
       setResetError(getErrorMessage(error));
@@ -100,7 +100,7 @@ const Login = () => {
 
         <form className="login-form" onSubmit={handleLogin}>
           <div className="input-group">
-            <label htmlFor="login">Usuário ou email</label>
+            <label htmlFor="login">UsuÃ¡rio ou email</label>
             <input
               type="text"
               id="login"
@@ -112,7 +112,7 @@ const Login = () => {
 
           <div className="input-group">
             <label htmlFor="password">Senha</label>
-            <input type="password" id="password" name="password" placeholder="••••••••" required />
+            <input type="password" id="password" name="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required />
           </div>
 
           <button type="submit" disabled={loading}>
@@ -145,7 +145,7 @@ const Login = () => {
 
             <div className="input-group">
               <label htmlFor="reset-password">Nova senha</label>
-              <input type="password" id="reset-password" name="reset-password" placeholder="••••••••" />
+              <input type="password" id="reset-password" name="reset-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
             </div>
 
             <div className="reset-actions">
@@ -160,10 +160,10 @@ const Login = () => {
         </div>
 
         <div className="auth-link">
-          Não tem conta? <Link to="/cadastro">Criar agora</Link>
+          NÃ£o tem conta? <Link to="/cadastro">Criar agora</Link>
         </div>
         <div className="back-home">
-          <Link to="/">Voltar para o início</Link>
+          <Link to="/">Voltar para o inÃ­cio</Link>
         </div>
       </div>
     </div>

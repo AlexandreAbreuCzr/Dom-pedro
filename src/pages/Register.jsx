@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../components/ToastProvider.jsx";
 import { getErrorMessage, register } from "../lib/api.js";
@@ -36,7 +36,7 @@ const Register = () => {
         password,
         role: "USER"
       });
-      toast({ variant: "success", message: "Conta criada! Faça login para agendar." });
+      toast({ variant: "success", message: "Conta criada! FaÃ§a login para agendar." });
       navigate("/login");
     } catch (error) {
       setFormError(getErrorMessage(error));
@@ -64,7 +64,7 @@ const Register = () => {
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="input-group">
-            <label htmlFor="username">Usuário</label>
+            <label htmlFor="username">UsuÃ¡rio</label>
             <input type="text" id="username" name="username" placeholder="seu.usuario" required />
           </div>
 
@@ -85,7 +85,7 @@ const Register = () => {
 
           <div className="input-group">
             <label htmlFor="password">Crie uma senha</label>
-            <input type="password" id="password" name="password" placeholder="••••••••" required />
+            <input type="password" id="password" name="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required />
           </div>
 
           <button type="submit" disabled={loading}>
@@ -94,10 +94,10 @@ const Register = () => {
         </form>
 
         <div className="auth-link">
-          Já tem conta? <Link to="/login">Entre agora</Link>
+          JÃ¡ tem conta? <Link to="/login">Entre agora</Link>
         </div>
         <div className="back-home">
-          <Link to="/">Voltar para o início</Link>
+          <Link to="/">Voltar para o inÃ­cio</Link>
         </div>
       </div>
     </div>

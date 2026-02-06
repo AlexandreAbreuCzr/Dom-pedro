@@ -1,9 +1,9 @@
-﻿import { Link, useNavigate } from "react-router-dom";
+﻿ï»¿import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
 import { useToast } from "./ToastProvider";
 
-const getInitials = (user) => {
+const assetBase = import.meta.env.BASE_URL;\n\nconst getInitials = (user) => {
   const raw = user?.nome || user?.name || user?.username || user?.email || "";
   const trimmed = raw.trim();
   if (!trimmed) return "DP";
@@ -15,10 +15,10 @@ const getInitials = (user) => {
 };
 
 const homeLinks = [
-  { label: "Serviços", href: "#services" },
+  { label: "ServiÃ§os", href: "#services" },
   { label: "Sobre", href: "#about" },
-  { label: "Informações", href: "#info" },
-  { label: "Avaliações", href: "#reviews" },
+  { label: "InformaÃ§Ãµes", href: "#info" },
+  { label: "AvaliaÃ§Ãµes", href: "#reviews" },
   { label: "Agendar", href: "#booking" }
 ];
 
@@ -91,7 +91,7 @@ export const Header = ({ highlight, links = homeLinks, id }) => {
         className={classes}
         onClick={(event) => {
           if (protectedHrefs.includes(link.href) && !token) {
-            guardAndNavigate(event, link.href, "Faça login para acessar.");
+            guardAndNavigate(event, link.href, "FaÃ§a login para acessar.");
           }
           setMenuOpen(false);
         }}
@@ -134,11 +134,11 @@ export const Header = ({ highlight, links = homeLinks, id }) => {
             <span className="user-initial" data-auth-initial hidden={!token}>
               {getInitials(user)}
             </span>
-            <img src="/assets/icons/user.svg" alt="" hidden={Boolean(token)} />
+            <img src=`${assetBase}assets/icons/user.svg` alt="" hidden={Boolean(token)} />
           </Link>
 
           <button className="menu-btn" aria-label="Abrir menu" type="button" aria-controls="primary-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen((prev) => !prev)}>
-            <img src="/assets/icons/menu.svg" alt="" />
+            <img src=`${assetBase}assets/icons/menu.svg` alt="" />
           </button>
         </div>
       </nav>

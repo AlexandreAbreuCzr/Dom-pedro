@@ -1,4 +1,4 @@
-.brand h1 {
+ï»¿.brand h1 {
   font-family: var(--font-logo);
   font-size: 3.8rem;
   color: var(--primary);
@@ -505,7 +505,7 @@
 }
 
 .about-list li::before {
-  content: "•";
+  content: "â€¢";
   position: absolute;
   left: 0;
   color: var(--primary);
@@ -749,7 +749,7 @@
 }
 
 .booking-rules li::before {
-  content: "•";
+  content: "â€¢";
   position: absolute;
   left: 0;
   color: var(--primary);

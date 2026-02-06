@@ -1,4 +1,4 @@
-:root {
+﻿ï»¿:root {
   --primary: #eac452;
   --primary-strong: #f4d67b;
   --primary-soft: rgba(234, 196, 82, 0.2);
@@ -24,6 +24,6 @@
 
   --header-bg:
     linear-gradient(180deg, rgba(12, 12, 12, 0.82), rgba(12, 12, 12, 0.82)),
-    url("/assets/images/back2-2.svg");
+    url("/Dom-pedro/assets/images/back2-2.svg");
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer.jsx";
 import { Header } from "../components/Header.jsx";
@@ -58,7 +58,7 @@ const Profile = () => {
       return;
     }
     if (payload.telefone && payload.telefone.length < 10) {
-      toast({ variant: "warning", message: "Telefone deve ter 10 a 15 dígitos." });
+      toast({ variant: "warning", message: "Telefone deve ter 10 a 15 dÃ­gitos." });
       return;
     }
 
@@ -89,7 +89,7 @@ const Profile = () => {
       return;
     }
     if (passwordValue !== confirmValue) {
-      toast({ variant: "warning", message: "As senhas não conferem." });
+      toast({ variant: "warning", message: "As senhas nÃ£o conferem." });
       return;
     }
 
@@ -114,10 +114,10 @@ const Profile = () => {
   const showBarber = user?.role === "BARBEIRO" || user?.role === "ADMIN";
 
   const navLinks = [
-    { label: "Serviços", href: "/#services" },
+    { label: "ServiÃ§os", href: "/#services" },
     { label: "Sobre", href: "/#about" },
-    { label: "Informações", href: "/#info" },
-    { label: "Avaliações", href: "/#reviews" },
+    { label: "InformaÃ§Ãµes", href: "/#info" },
+    { label: "AvaliaÃ§Ãµes", href: "/#reviews" },
     { label: "Perfil", href: "/perfil" }
   ];
 
@@ -145,7 +145,7 @@ const Profile = () => {
         <section className="panel" data-reveal="delay-1">
           <div className="panel-header">
             <h3>Dados da conta</h3>
-            <p className="muted">Username e email não podem ser alterados aqui.</p>
+            <p className="muted">Username e email nÃ£o podem ser alterados aqui.</p>
           </div>
           <div className="panel-body">
             <form className="panel-form" onSubmit={handleProfileSubmit}>

@@ -1,4 +1,4 @@
-const defaultConfig = {
+ï»¿const defaultConfig = {
   baseUrl: "https://dom-pedro-api.onrender.com",
   endpoints: {
     login: "/auth/login",
@@ -158,7 +158,7 @@ const normalizeService = (service = {}) => {
   return {
     id: service.id || service.codigo || service.servicoId || name,
     name,
-    description: service.descricao || service.description || "Serviço premium Dom Pedro.",
+    description: service.descricao || service.description || "ServiÃ§o premium Dom Pedro.",
     price,
     status,
     imageUrl: service.imageUrl || service.imagemUrl || service.image || service.imagem,
@@ -474,7 +474,7 @@ const getErrorMessage = (error) => {
   if (Array.isArray(data?.errors)) {
     return data.errors.map((item) => item.message || item).join(", ");
   }
-  return "Não foi possível concluir. Tente novamente.";
+  return "NÃ£o foi possÃ­vel concluir. Tente novamente.";
 };
 
 export {

@@ -1,4 +1,4 @@
-*,
+﻿ï»¿*,
 *::before,
 *::after {
   box-sizing: border-box;
@@ -61,7 +61,7 @@ section {
   height: calc(var(--header-height) + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
   background-color: #0d0d0d;
-  background-image: url("/assets/images/back2-2.svg");
+  background-image: url("/Dom-pedro/assets/images/back2-2.svg");
   background-size: 320px;
   background-repeat: repeat;
   background-position: top center;

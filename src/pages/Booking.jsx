@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer.jsx";
 import { Header } from "../components/Header.jsx";
@@ -21,7 +21,7 @@ import {
 } from "../lib/api.js";
 
 const fallbackServices = [
-  { id: 1, name: "Corte Masculino", description: "Corte moderno ou cl�ssico.", price: 45 },
+  { id: 1, name: "Corte Masculino", description: "Corte moderno ou clássico.", price: 45 },
   { id: 2, name: "Barba", description: "Modelagem com toalha quente.", price: 25 },
   { id: 3, name: "Sobrancelha", description: "Design e alinhamento.", price: 15 }
 ];
@@ -72,7 +72,7 @@ const Booking = () => {
     hora: ""
   });
   const [loading, setLoading] = useState(false);
-  const [note, setNote] = useState("Selecione servi�o e hor�rio.");
+  const [note, setNote] = useState("Selecione serviço e horário.");
   const [serviceDuration, setServiceDuration] = useState("");
 
   useEffect(() => {
@@ -83,9 +83,9 @@ const Booking = () => {
 
   const updateNote = (servicesCount, barbersCount) => {
     const parts = [];
-    if (servicesCount) parts.push(`${servicesCount} servi�os dispon�veis`);
-    if (barbersCount) parts.push(`${barbersCount} profissionais dispon�veis`);
-    setNote(parts.length ? `${parts.join(" | ")}.` : "Selecione servi�o e hor�rio.");
+    if (servicesCount) parts.push(`${servicesCount} serviços disponíveis`);
+    if (barbersCount) parts.push(`${barbersCount} profissionais disponíveis`);
+    setNote(parts.length ? `${parts.join(" | ")}.` : "Selecione serviço e horário.");
   };
 
   const updateDuration = (serviceId, serviceList) => {
@@ -141,7 +141,7 @@ const Booking = () => {
       setAppointments(list.map(normalizeAppointment));
     } catch (error) {
       setAppointments([]);
-      toast({ variant: "error", message: "Não foi possível carregar seus agendamentos." });
+      toast({ variant: "error", message: "NÃ£o foi possÃ­vel carregar seus agendamentos." });
     }
   };
 
@@ -190,7 +190,7 @@ const Booking = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!token) {
-      toast({ variant: "warning", message: "Faça login para finalizar o agendamento." });
+      toast({ variant: "warning", message: "FaÃ§a login para finalizar o agendamento." });
       navigate("/login?redirect=/agendamento");
       return;
     }
@@ -204,17 +204,17 @@ const Booking = () => {
     };
 
     if (!payload.clienteUsername) {
-      toast({ variant: "warning", message: "Faça login novamente para confirmar seu usuário." });
+      toast({ variant: "warning", message: "FaÃ§a login novamente para confirmar seu usuÃ¡rio." });
       return;
     }
     if (!payload.servicoId || !payload.data || !payload.hora) {
-      toast({ variant: "warning", message: "Preencha serviço, data e horário." });
+      toast({ variant: "warning", message: "Preencha serviÃ§o, data e horÃ¡rio." });
       return;
     }
     if (!isDateAllowed(payload.data, payload.hora)) {
       toast({
         variant: "warning",
-        message: "Escolha uma data válida com pelo menos 15 minutos de antecedência."
+        message: "Escolha uma data vÃ¡lida com pelo menos 15 minutos de antecedÃªncia."
       });
       return;
     }
@@ -239,12 +239,12 @@ const Booking = () => {
 
   const serviceNameFor = (serviceId) => {
     const found = services.find((service) => String(service.id) === String(serviceId));
-    return found?.name || (serviceId ? `Servi�o #${serviceId}` : "Servi�o");
+    return found?.name || (serviceId ? `Serviço #${serviceId}` : "Serviço");
   };
 
   const appointmentsEmptyMessage = token
-    ? "Você ainda não possui agendamentos."
-    : "Faça login para visualizar seus agendamentos.";
+    ? "VocÃª ainda nÃ£o possui agendamentos."
+    : "FaÃ§a login para visualizar seus agendamentos.";
 
   const servicesOptions = useMemo(
     () =>
@@ -255,10 +255,10 @@ const Booking = () => {
   );
 
   const navLinks = [
-    { label: "Serviços", href: "/#services" },
+    { label: "ServiÃ§os", href: "/#services" },
     { label: "Sobre", href: "/#about" },
-    { label: "Informações", href: "/#info" },
-    { label: "Avaliações", href: "/#reviews" },
+    { label: "InformaÃ§Ãµes", href: "/#info" },
+    { label: "AvaliaÃ§Ãµes", href: "/#reviews" },
     { label: "Agendar", href: "/agendamento" }
   ];
 
@@ -269,7 +269,7 @@ const Booking = () => {
         <section className="booking-hero">
           <div>
             <h2>Agendamento</h2>
-            <p>Escolha o serviço, o dia e o melhor horário para você.</p>
+            <p>Escolha o serviÃ§o, o dia e o melhor horÃ¡rio para vocÃª.</p>
           </div>
         </section>
 
@@ -278,21 +278,21 @@ const Booking = () => {
             <div className="step-card">
               <span className="step-number">1</span>
               <div>
-                <h3>Serviço e profissional</h3>
-                <p>Selecione o serviço e o profissional (opcional).</p>
+                <h3>ServiÃ§o e profissional</h3>
+                <p>Selecione o serviÃ§o e o profissional (opcional).</p>
               </div>
             </div>
             <div className="step-card">
               <span className="step-number">2</span>
               <div>
-                <h3>Horário</h3>
-                <p>Escolha o dia e o horário permitido.</p>
+                <h3>HorÃ¡rio</h3>
+                <p>Escolha o dia e o horÃ¡rio permitido.</p>
               </div>
             </div>
             <div className="step-card">
               <span className="step-number">3</span>
               <div>
-                <h3>Confirmação</h3>
+                <h3>ConfirmaÃ§Ã£o</h3>
                 <p>Finalize e acompanhe seus agendamentos.</p>
               </div>
             </div>
@@ -301,10 +301,10 @@ const Booking = () => {
           <div className="booking-rules">
             <h3>Regras de agendamento</h3>
             <ul>
-              <li>Agendamentos precisam de pelo menos 15 minutos de antecedência.</li>
-              <li>Não é permitido agendar para domingo.</li>
-              <li>Horários disponíveis: 09h às 12h e 13h às 20h.</li>
-              <li>Datas passadas não são permitidas.</li>
+              <li>Agendamentos precisam de pelo menos 15 minutos de antecedÃªncia.</li>
+              <li>NÃ£o Ã© permitido agendar para domingo.</li>
+              <li>HorÃ¡rios disponÃ­veis: 09h Ã s 12h e 13h Ã s 20h.</li>
+              <li>Datas passadas nÃ£o sÃ£o permitidas.</li>
             </ul>
           </div>
 
@@ -330,9 +330,9 @@ const Booking = () => {
               </div>
 
               <div className="form-field">
-                <label htmlFor="Servi�o">Serviço</label>
+                <label htmlFor="Serviço">ServiÃ§o</label>
                 <select
-                  id="Servi�o"
+                  id="Serviço"
                   value={formState.servicoId}
                   onChange={(event) =>
                     setFormState((prev) => ({ ...prev, servicoId: event.target.value }))
@@ -340,10 +340,10 @@ const Booking = () => {
                   disabled={Boolean(editingId)}
                   required
                 >
-                  <option value="">Selecione um serviço</option>
+                  <option value="">Selecione um serviÃ§o</option>
                   {servicesOptions.map((service) => (
                     <option key={service.id} value={service.id}>
-                      {service.name} • {formatCurrency(service.price)}
+                      {service.name} â€¢ {formatCurrency(service.price)}
                     </option>
                   ))}
                 </select>
@@ -364,7 +364,7 @@ const Booking = () => {
               </div>
 
               <div className="form-field">
-                <label htmlFor="horario">Horário</label>
+                <label htmlFor="horario">HorÃ¡rio</label>
                 <input
                   id="horario"
                   type="time"
@@ -374,13 +374,13 @@ const Booking = () => {
                     setFormState((prev) => ({ ...prev, hora: event.target.value }))
                   }
                 />
-                <span className="form-note">Selecione um horário disponível.</span>
+                <span className="form-note">Selecione um horÃ¡rio disponÃ­vel.</span>
               </div>
             </div>
 
             <div className="form-actions">
               <button className="primary-action" type="submit" disabled={loading}>
-                {loading ? "Salvando..." : editingId ? "Salvar alterações" : "Confirmar agendamento"}
+                {loading ? "Salvando..." : editingId ? "Salvar alteraÃ§Ãµes" : "Confirmar agendamento"}
               </button>
               <button
                 className="ghost-action"
@@ -388,7 +388,7 @@ const Booking = () => {
                 hidden={!editingId}
                 onClick={resetForm}
               >
-                Cancelar alteração
+                Cancelar alteraÃ§Ã£o
               </button>
               <p className="form-note">{note}</p>
             </div>
@@ -397,7 +397,7 @@ const Booking = () => {
           <section className="appointments">
             <div className="section-header">
               <h2>Meus agendamentos</h2>
-              <p>Visualize, cancele ou remarque seus horários.</p>
+              <p>Visualize, cancele ou remarque seus horÃ¡rios.</p>
             </div>
             {appointments.length === 0 ? (
               <div className="appointments-empty">{appointmentsEmptyMessage}</div>
@@ -408,7 +408,7 @@ const Booking = () => {
                     <div className="appointment-meta">
                       <h4>{serviceNameFor(appointment.serviceId)}</h4>
                       <span>
-                        {formatDateBr(appointment.date)} às {appointment.time}
+                        {formatDateBr(appointment.date)} Ã s {appointment.time}
                       </span>
                       <span>Profissional: {appointment.barbeiroUsername || "-"}</span>
                       <span>Status: {appointment.status}</span>
