@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer.jsx";
 import { Header } from "../components/Header.jsx";
 import { SideNav } from "../components/SideNav.jsx";
@@ -211,13 +211,13 @@ const Home = () => {
                     <p>{service.description}</p>
                     <div className="service-footer">
                       <strong>{formatCurrency(service.price)}</strong>
-                      <a
+                      <Link
                         className="service-cta"
-                        href="/agendamento"
+                        to="/agendamento"
                         onClick={(event) => handleProtected(event, "/agendamento")}
                       >
                         Agendar
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </article>
@@ -257,9 +257,13 @@ const Home = () => {
               <li>Produtos premium com tratamento para couro e barba.</li>
               <li>Agendamento rápido, com horários sob medida.</li>
             </ul>
-            <a className="text-link" href="/agendamento" onClick={(event) => handleProtected(event, "/agendamento")}>
+            <Link
+              className="text-link"
+              to="/agendamento"
+              onClick={(event) => handleProtected(event, "/agendamento")}
+            >
               Quero agendar
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -386,13 +390,13 @@ const Home = () => {
         <section className="booking" id="booking" data-reveal>
           <h2>Agendamento</h2>
           <p>Escolha o melhor dia, horário e finalize em poucos cliques.</p>
-          <a
+          <Link
             className="booking-button"
-            href="/agendamento"
+            to="/agendamento"
             onClick={(event) => handleProtected(event, "/agendamento")}
           >
             Agendar
-          </a>
+          </Link>
           <span className="booking-note">Disponível para clientes logados com a API Barberia.</span>
         </section>
       </main>

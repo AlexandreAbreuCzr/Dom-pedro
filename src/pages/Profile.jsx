@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer.jsx";
 import { Header } from "../components/Header.jsx";
 import { useToast } from "../components/ToastProvider.jsx";
@@ -130,14 +130,14 @@ const Profile = () => {
           <p>Atualize seus dados principais e sua senha.</p>
           <div className="profile-actions" hidden={!(showAdmin || showBarber)}>
             {showAdmin ? (
-              <a className="primary-action" href="/admin">
+              <Link className="primary-action" to="/admin">
                 Ir para Admin
-              </a>
+              </Link>
             ) : null}
             {showBarber ? (
-              <a className="ghost-action" href="/barbeiro">
+              <Link className="ghost-action" to="/barbeiro">
                 Ir para Barbeiro
-              </a>
+              </Link>
             ) : null}
           </div>
         </section>
