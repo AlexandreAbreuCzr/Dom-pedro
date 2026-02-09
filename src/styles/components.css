@@ -1341,12 +1341,108 @@
 }
 
 @media (max-width: 560px) {
-  .day-cell {
-    min-height: 60px;
+  .panel {
+    padding: 16px;
+  }
+
+  .booking-hero {
+    margin: 24px 0 20px;
+    padding: 18px 16px;
+  }
+
+  .booking-hero h2 {
+    font-size: 1.55rem;
+  }
+
+  .booking-calendar-block {
+    gap: 14px;
+  }
+
+  .month-calendar {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .month-calendar__header {
+    grid-template-columns: 34px 1fr 34px;
+  }
+
+  .month-calendar__header strong {
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .month-calendar__header .ghost-action {
+    height: 30px;
     padding: 6px;
+    border-radius: 10px;
+  }
+
+  .month-calendar__weekdays {
+    gap: 4px;
+  }
+
+  .month-calendar__weekdays span {
+    font-size: 0.62rem;
+  }
+
+  .month-calendar__grid {
+    gap: 4px;
+  }
+
+  .day-cell {
+    min-height: 48px;
+    padding: 4px;
+    align-content: center;
+    justify-items: center;
+    gap: 2px;
+    border-radius: 10px;
+  }
+
+  .day-cell__number {
+    font-size: 0.76rem;
+  }
+
+  .day-cell__count {
+    font-size: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--primary);
   }
 
   .day-cell__label {
     display: none;
+  }
+
+  .booking-page-v2 .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .booking-page-v2 .form-actions .primary-action,
+  .booking-page-v2 .form-actions .ghost-action {
+    width: 100%;
+    text-align: center;
+  }
+
+  .appointment-card {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .appointment-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .appointment-actions .ghost-action,
+  .appointment-actions .danger-action {
+    width: 100%;
+    padding: 10px 12px;
   }
 }

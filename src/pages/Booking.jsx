@@ -105,7 +105,11 @@ const Booking = () => {
       const data = await getMyAppointments();
       const list = Array.isArray(data) ? data : data?.content || data?.agendamentos || [];
       const normalized = list.map(normalizeAppointment);
-      setAppointments(normalized);
+      const currentUsername = user?.username || (await refreshUser())?.username;
+      const clientAppointments = currentUsername
+        ? normalized.filter((appointment) => appointment.clienteUsername === currentUsername)
+        : normalized;
+      setAppointments(clientAppointments);
     } catch (error) {
       setAppointments([]);
       toast({ variant: "error", message: "Nao foi possivel carregar seus agendamentos." });
@@ -427,6 +431,7 @@ const Booking = () => {
                     onSelectDate={setSelectedDate}
                     dayMeta={availabilityMap}
                     minDate={todayIso}
+                    compact
                   />
                 </div>
 
