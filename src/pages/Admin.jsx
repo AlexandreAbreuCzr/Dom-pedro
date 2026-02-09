@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+﻿
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer.jsx";
 import { Header } from "../components/Header.jsx";
+import { MonthCalendar, calendarUtils } from "../components/MonthCalendar.jsx";
 import { useToast } from "../components/ToastProvider.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import {
@@ -12,14 +14,18 @@ import {
   deleteIndisponibilidade,
   deleteService,
   formatCurrency,
-  getCash,
+  formatDateBr,
+  formatTime,
+  getAppointments,
   getBarbers,
+  getCash,
   getCommissionRate,
   getCommissions,
   getErrorMessage,
   getIndisponibilidades,
   getServices,
   getUsersAdmin,
+  normalizeAppointment,
   normalizeBarber,
   normalizeService,
   updateCommission,
@@ -30,18 +36,28 @@ import {
   updateUserStatus
 } from "../lib/api.js";
 
+const toMonthRange = (monthDate) => ({
+  startDate: calendarUtils.toIso(calendarUtils.startOfMonth(monthDate)),
+  endDate: calendarUtils.toIso(calendarUtils.endOfMonth(monthDate))
+});
+
+const statusClass = (status) => {
+  if (status === "AGENDADO") return "tag--success";
+  if (status === "CONCLUIDO") return "tag--info";
+  if (status === "CANCELADO") return "tag--danger";
+  return "";
+};
+
 const Admin = () => {
   const { token, user, refreshUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const [ready, setReady] = useState(false);
+
   const [users, setUsers] = useState([]);
   const [usersEmpty, setUsersEmpty] = useState(false);
-  const [userFilters, setUserFilters] = useState({
-    name: "",
-    role: "",
-    status: ""
-  });
+  const [userFilters, setUserFilters] = useState({ name: "", role: "", status: "" });
 
   const [services, setServices] = useState([]);
   const [servicesEmpty, setServicesEmpty] = useState(false);
@@ -55,13 +71,14 @@ const Admin = () => {
   });
   const serviceImageRef = useRef(null);
 
-  const [commissions, setCommissions] = useState([]);
-  const [commissionsEmpty, setCommissionsEmpty] = useState(false);
-  const [commissionFilters, setCommissionFilters] = useState({ inicio: "", fim: "" });
-  const [commissionRate, setCommissionRate] = useState("");
-  const [commissionApplyAll, setCommissionApplyAll] = useState(false);
-
   const [barbers, setBarbers] = useState([]);
+
+  const [calendarMonth, setCalendarMonth] = useState(calendarUtils.startOfMonth(new Date()));
+  const [calendarBarberFilter, setCalendarBarberFilter] = useState("");
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState("");
+  const [calendarAppointments, setCalendarAppointments] = useState([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+
   const [indisponibilidades, setIndisponibilidades] = useState([]);
   const [indisponibilidadesEmpty, setIndisponibilidadesEmpty] = useState(false);
   const [indForm, setIndForm] = useState({
@@ -70,6 +87,12 @@ const Admin = () => {
     inicio: "",
     fim: ""
   });
+
+  const [commissions, setCommissions] = useState([]);
+  const [commissionsEmpty, setCommissionsEmpty] = useState(false);
+  const [commissionFilters, setCommissionFilters] = useState({ inicio: "", fim: "" });
+  const [commissionRate, setCommissionRate] = useState("");
+  const [commissionApplyAll, setCommissionApplyAll] = useState(false);
 
   const [cashEntries, setCashEntries] = useState([]);
   const [cashEmpty, setCashEmpty] = useState(false);
@@ -86,21 +109,17 @@ const Admin = () => {
       navigate("/login?redirect=/admin");
       return;
     }
-    const checkRole = async () => {
+
+    const bootstrap = async () => {
       const me = user || (await refreshUser());
       if (!me || me.role !== "ADMIN") {
         navigate("/");
         return;
       }
-      loadUsers();
-      loadServices();
-      loadCommissions();
-      loadCommissionRate();
-      loadCash();
-      const selected = await loadBarbers();
-      loadIndisponibilidades(selected);
+      setReady(true);
     };
-    checkRole();
+
+    bootstrap();
   }, [token]);
 
   const loadUsers = async () => {
@@ -109,10 +128,12 @@ const Admin = () => {
       if (userFilters.name) filters.name = userFilters.name;
       if (userFilters.role) filters.userRole = userFilters.role;
       if (userFilters.status) filters.status = userFilters.status;
+
       const list = await getUsersAdmin(filters);
       setUsers(list || []);
       setUsersEmpty(!(list && list.length));
     } catch (error) {
+      setUsers([]);
       setUsersEmpty(true);
       toast({ variant: "error", message: getErrorMessage(error) });
     }
@@ -122,17 +143,146 @@ const Admin = () => {
     try {
       const data = await getServices();
       const list = Array.isArray(data) ? data : data?.content || data?.servicos || [];
-      const normalized = list
-        .map(normalizeService)
-        .filter((service) => service.status !== false)
-        .map((service) => ({ ...service, duration: service.duracaoEmMinutos || 0 }));
+      const normalized = list.map(normalizeService).map((service) => ({
+        ...service,
+        duration: service.duracaoEmMinutos || 0
+      }));
       setServices(normalized);
       setServicesEmpty(!normalized.length);
     } catch (error) {
+      setServices([]);
       setServicesEmpty(true);
       toast({ variant: "error", message: getErrorMessage(error) });
     }
   };
+
+  const loadBarbers = async () => {
+    try {
+      const data = await getBarbers();
+      const list = Array.isArray(data) ? data : data?.content || data?.usuarios || [];
+      const normalized = list.map(normalizeBarber).filter((barber) => barber.username);
+      setBarbers(normalized);
+
+      if (!indForm.barbeiroUsername && normalized.length) {
+        setIndForm((prev) => ({ ...prev, barbeiroUsername: normalized[0].username }));
+      }
+
+      return normalized;
+    } catch (error) {
+      setBarbers([]);
+      return [];
+    }
+  };
+
+  const loadCalendarAppointments = async () => {
+    if (!ready) return;
+
+    try {
+      setCalendarLoading(true);
+
+      const { startDate, endDate } = toMonthRange(calendarMonth);
+      const filters = {
+        dataInicio: startDate,
+        dataFim: endDate
+      };
+
+      if (calendarBarberFilter) {
+        filters.barbeiroUserName = calendarBarberFilter;
+      }
+
+      const data = await getAppointments(filters);
+      const list = Array.isArray(data) ? data : data?.content || data?.agendamentos || [];
+      setCalendarAppointments(list.map(normalizeAppointment));
+    } catch (error) {
+      setCalendarAppointments([]);
+      toast({ variant: "error", message: getErrorMessage(error) });
+    } finally {
+      setCalendarLoading(false);
+    }
+  };
+
+  const loadIndisponibilidades = async (barbeiroUsername) => {
+    if (!barbeiroUsername) {
+      setIndisponibilidades([]);
+      setIndisponibilidadesEmpty(true);
+      return;
+    }
+
+    try {
+      const data = await getIndisponibilidades({ barbeiroUsername });
+      const list = Array.isArray(data) ? data : data?.content || data?.indisponibilidades || [];
+      setIndisponibilidades(list);
+      setIndisponibilidadesEmpty(!list.length);
+    } catch (error) {
+      setIndisponibilidades([]);
+      setIndisponibilidadesEmpty(true);
+      toast({ variant: "error", message: getErrorMessage(error) });
+    }
+  };
+
+  const loadCommissions = async () => {
+    try {
+      const filters = {};
+      if (commissionFilters.inicio) filters.inicio = commissionFilters.inicio;
+      if (commissionFilters.fim) filters.fim = commissionFilters.fim;
+      const items = await getCommissions(filters);
+      setCommissions(items || []);
+      setCommissionsEmpty(!(items && items.length));
+    } catch (error) {
+      setCommissions([]);
+      setCommissionsEmpty(true);
+      toast({ variant: "error", message: getErrorMessage(error) });
+    }
+  };
+
+  const loadCommissionRate = async () => {
+    try {
+      const data = await getCommissionRate();
+      if (data?.percentual != null) setCommissionRate(String(data.percentual));
+    } catch (error) {
+      toast({ variant: "error", message: getErrorMessage(error) });
+    }
+  };
+
+  const loadCash = async () => {
+    try {
+      const filters = {};
+      if (cashFilters.tipo) filters.tipo = cashFilters.tipo;
+      if (cashFilters.inicio) filters.inicio = cashFilters.inicio;
+      if (cashFilters.fim) filters.fim = cashFilters.fim;
+      const items = await getCash(filters);
+      setCashEntries(items || []);
+      setCashEmpty(!(items && items.length));
+    } catch (error) {
+      setCashEntries([]);
+      setCashEmpty(true);
+      toast({ variant: "error", message: getErrorMessage(error) });
+    }
+  };
+
+  useEffect(() => {
+    if (!ready) return;
+
+    const initialize = async () => {
+      loadUsers();
+      loadServices();
+      loadCommissions();
+      loadCommissionRate();
+      loadCash();
+
+      const loadedBarbers = await loadBarbers();
+      const defaultBarber = indForm.barbeiroUsername || loadedBarbers[0]?.username;
+      loadIndisponibilidades(defaultBarber);
+      loadCalendarAppointments();
+    };
+
+    initialize();
+  }, [ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    loadCalendarAppointments();
+  }, [calendarMonth, calendarBarberFilter]);
 
   const resetServiceForm = () => {
     setServiceForm({
@@ -160,28 +310,36 @@ const Admin = () => {
 
   const handleServiceSubmit = async (event) => {
     event.preventDefault();
+
     const name = serviceForm.name.trim();
     const price = Number(String(serviceForm.price).replace(",", "."));
     const duration = Number(serviceForm.duration);
     const status = serviceForm.status === "true";
+
     if (!name || !price || !duration) {
-      toast({ variant: "warning", message: "Preencha nome, preço e duração." });
+      toast({ variant: "warning", message: "Preencha nome, preco e duracao." });
       return;
     }
 
     try {
       if (serviceForm.id) {
-        await updateService(serviceForm.id, { name, price, duracaoEmMinutos: duration, status });
+        await updateService(serviceForm.id, {
+          name,
+          price,
+          duracaoEmMinutos: duration,
+          status
+        });
         if (serviceForm.file) await updateServiceImage(serviceForm.id, serviceForm.file);
-        toast({ variant: "success", message: "Serviço atualizado." });
+        toast({ variant: "success", message: "Servico atualizado." });
       } else {
         if (serviceForm.file) {
           await createServiceWithImage({ name, price, duracaoEmMinutos: duration }, serviceForm.file);
         } else {
           await createService({ name, price, duracaoEmMinutos: duration });
         }
-        toast({ variant: "success", message: "Serviço criado." });
+        toast({ variant: "success", message: "Servico criado." });
       }
+
       resetServiceForm();
       loadServices();
     } catch (error) {
@@ -190,12 +348,14 @@ const Admin = () => {
   };
 
   const handleDeleteService = async (service) => {
-    if (!confirm(`Excluir serviço "${service.name}"?`)) return;
+    if (!service?.id) return;
+    if (!confirm(`Excluir servico "${service.name}"?`)) return;
+
     try {
       await deleteService(service.id);
       toast({
         variant: "success",
-        message: "Serviço removido. Se havia agendamentos, ele foi desativado."
+        message: "Servico removido. Se tinha agendamento vinculado, foi desativado."
       });
       loadServices();
     } catch (error) {
@@ -203,70 +363,14 @@ const Admin = () => {
     }
   };
 
-  const loadCommissions = async () => {
-    try {
-      const filters = {};
-      if (commissionFilters.inicio) filters.inicio = commissionFilters.inicio;
-      if (commissionFilters.fim) filters.fim = commissionFilters.fim;
-      const items = await getCommissions(filters);
-      setCommissions(items || []);
-      setCommissionsEmpty(!(items && items.length));
-    } catch (error) {
-      setCommissionsEmpty(true);
-      toast({ variant: "error", message: getErrorMessage(error) });
-    }
-  };
-
-  const loadBarbers = async () => {
-    try {
-      const data = await getBarbers();
-      const list = Array.isArray(data) ? data : data?.content || data?.usuarios || [];
-      const normalized = list
-        .map(normalizeBarber)
-        .filter((barber) => barber.username);
-      setBarbers(normalized);
-      if (!indForm.barbeiroUsername && normalized.length) {
-        const selected = normalized[0].username;
-        setIndForm((prev) => ({ ...prev, barbeiroUsername: selected }));
-        return selected;
-      }
-      return indForm.barbeiroUsername;
-    } catch (error) {
-      setBarbers([]);
-      return indForm.barbeiroUsername;
-    }
-  };
-
-  const loadIndisponibilidades = async (barbeiroUsername) => {
-    try {
-      const filters = {};
-      if (barbeiroUsername) filters.barbeiroUsername = barbeiroUsername;
-      const data = await getIndisponibilidades(filters);
-      const list = Array.isArray(data) ? data : data?.content || data?.indisponibilidades || [];
-      setIndisponibilidades(list);
-      setIndisponibilidadesEmpty(!list.length);
-    } catch (error) {
-      setIndisponibilidades([]);
-      setIndisponibilidadesEmpty(true);
-      toast({ variant: "error", message: getErrorMessage(error) });
-    }
-  };
-
-  const loadCommissionRate = async () => {
-    try {
-      const data = await getCommissionRate();
-      if (data?.percentual != null) setCommissionRate(String(data.percentual));
-    } catch (error) {
-      toast({ variant: "error", message: getErrorMessage(error) });
-    }
-  };
-
   const handleIndisponibilidadeSubmit = async (event) => {
     event.preventDefault();
+
     if (!indForm.barbeiroUsername || !indForm.tipo || !indForm.inicio || !indForm.fim) {
       toast({ variant: "warning", message: "Preencha todos os campos." });
       return;
     }
+
     try {
       await createIndisponibilidade({
         barbeiroUsername: indForm.barbeiroUsername,
@@ -274,6 +378,7 @@ const Admin = () => {
         inicio: indForm.inicio,
         fim: indForm.fim
       });
+
       setIndForm((prev) => ({ ...prev, inicio: "", fim: "" }));
       loadIndisponibilidades(indForm.barbeiroUsername);
       toast({ variant: "success", message: "Indisponibilidade registrada." });
@@ -285,9 +390,10 @@ const Admin = () => {
   const handleCommissionRateSave = async () => {
     const percentual = Number(String(commissionRate || "").replace(",", "."));
     if (!Number.isFinite(percentual)) {
-      toast({ variant: "warning", message: "Informe um percentual válido." });
+      toast({ variant: "warning", message: "Informe um percentual valido." });
       return;
     }
+
     try {
       await updateCommissionRate({ percentual, aplicarEmTodas: Boolean(commissionApplyAll) });
       toast({ variant: "success", message: "Taxa global atualizada." });
@@ -298,28 +404,15 @@ const Admin = () => {
     }
   };
 
-  const loadCash = async () => {
-    try {
-      const filters = {};
-      if (cashFilters.tipo) filters.tipo = cashFilters.tipo;
-      if (cashFilters.inicio) filters.inicio = cashFilters.inicio;
-      if (cashFilters.fim) filters.fim = cashFilters.fim;
-      const items = await getCash(filters);
-      setCashEntries(items || []);
-      setCashEmpty(!(items && items.length));
-    } catch (error) {
-      setCashEmpty(true);
-      toast({ variant: "error", message: getErrorMessage(error) });
-    }
-  };
-
   const handleCashSubmit = async (event) => {
     event.preventDefault();
+
     const valor = Number(String(cashForm.valor).replace(",", "."));
     if (!cashForm.tipo || !cashForm.descricao.trim() || !valor) {
       toast({ variant: "warning", message: "Preencha tipo, descricao e valor." });
       return;
     }
+
     try {
       await createCashEntry({
         tipo: cashForm.tipo,
@@ -327,6 +420,7 @@ const Admin = () => {
         valor,
         barbeiroUsername: cashForm.barbeiroUsername || null
       });
+
       setCashForm({ tipo: "ENTRADA", descricao: "", valor: "", barbeiroUsername: "" });
       loadCash();
     } catch (error) {
@@ -334,11 +428,53 @@ const Admin = () => {
     }
   };
 
+  const calendarDayMeta = useMemo(() => {
+    const grouped = calendarAppointments.reduce((acc, item) => {
+      if (!item.date) return acc;
+      acc[item.date] = (acc[item.date] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.fromEntries(
+      Object.entries(grouped).map(([date, count]) => [
+        date,
+        {
+          state: "events",
+          count,
+          label: `${count} ag.`,
+          disabled: false
+        }
+      ])
+    );
+  }, [calendarAppointments]);
+
+  useEffect(() => {
+    if (calendarSelectedDate && calendarDayMeta[calendarSelectedDate]) return;
+
+    const firstDate = Object.keys(calendarDayMeta)
+      .sort((a, b) => a.localeCompare(b))
+      .find(Boolean);
+
+    setCalendarSelectedDate(firstDate || "");
+  }, [calendarDayMeta]);
+
+  const appointmentsOfSelectedDay = useMemo(() => {
+    if (!calendarSelectedDate) return [];
+
+    return calendarAppointments
+      .filter((item) => item.date === calendarSelectedDate)
+      .sort((a, b) => {
+        const left = formatTime(a.time || "");
+        const right = formatTime(b.time || "");
+        return left.localeCompare(right);
+      });
+  }, [calendarAppointments, calendarSelectedDate]);
+
   const cashSummary = cashEntries.reduce(
     (acc, item) => {
-      const valor = Number(item.valor || 0);
-      if (item.tipo === "ENTRADA") acc.entrada += valor;
-      if (item.tipo === "SAIDA") acc.saida += valor;
+      const value = Number(item.valor || 0);
+      if (item.tipo === "ENTRADA") acc.entrada += value;
+      if (item.tipo === "SAIDA") acc.saida += value;
       return acc;
     },
     { entrada: 0, saida: 0 }
@@ -346,10 +482,10 @@ const Admin = () => {
   const saldo = cashSummary.entrada - cashSummary.saida;
 
   const navLinks = [
-    { label: "Serviços", href: "/#services" },
+    { label: "Servicos", href: "/#services" },
     { label: "Sobre", href: "/#about" },
-    { label: "Informações", href: "/#info" },
-    { label: "Avaliações", href: "/#reviews" },
+    { label: "Informacoes", href: "/#info" },
+    { label: "Avaliacoes", href: "/#reviews" },
     { label: "Admin", href: "/admin" }
   ];
 
@@ -359,12 +495,76 @@ const Admin = () => {
       <main className="container admin-page">
         <section className="page-header" data-reveal>
           <h2>Painel Administrativo</h2>
-          <p>Gerencie usuários e serviços da barbearia.</p>
+          <p>Gestao completa de usuarios, agenda, servicos, comissoes e caixa.</p>
         </section>
 
         <section className="panel" data-reveal="delay-1">
           <div className="panel-header">
-            <h3>Usuários</h3>
+            <h3>Calendario global de agendamentos</h3>
+            <div className="panel-actions">
+              <select
+                value={calendarBarberFilter}
+                onChange={(event) => setCalendarBarberFilter(event.target.value)}
+              >
+                <option value="">Todos os barbeiros</option>
+                {barbers.map((barber) => (
+                  <option key={barber.username} value={barber.username}>
+                    {barber.name ? `${barber.name} (${barber.username})` : barber.username}
+                  </option>
+                ))}
+              </select>
+              <button className="ghost-action" type="button" onClick={loadCalendarAppointments}>
+                Atualizar
+              </button>
+            </div>
+          </div>
+
+          <div className="calendar-two-columns">
+            <MonthCalendar
+              monthDate={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              selectedDate={calendarSelectedDate}
+              onSelectDate={setCalendarSelectedDate}
+              dayMeta={calendarDayMeta}
+            />
+
+            <div className="calendar-day-details">
+              <h4>
+                {calendarSelectedDate
+                  ? `Agendamentos de ${formatDateBr(calendarSelectedDate)}`
+                  : "Selecione um dia no calendario"}
+              </h4>
+
+              {calendarLoading ? <p className="muted">Carregando agendamentos...</p> : null}
+
+              {!calendarLoading && !appointmentsOfSelectedDay.length ? (
+                <p className="muted">Nenhum agendamento para o dia selecionado.</p>
+              ) : (
+                <div className="panel-list">
+                  {appointmentsOfSelectedDay.map((appointment) => (
+                    <article key={appointment.id} className="row-card">
+                      <div className="row-main">
+                        <strong>{appointment.serviceName || `Servico #${appointment.serviceId}`}</strong>
+                        <span>
+                          {formatDateBr(appointment.date)} as {formatTime(appointment.time)}
+                        </span>
+                        <span>Barbeiro: {appointment.barbeiroUsername || "-"}</span>
+                        <span>Cliente: {appointment.clienteUsername || "-"}</span>
+                      </div>
+                      <div className="row-meta">
+                        <span className={`tag ${statusClass(appointment.status)}`}>{appointment.status}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="panel" data-reveal="delay-2">
+          <div className="panel-header">
+            <h3>Usuarios</h3>
             <div className="panel-actions">
               <input
                 type="text"
@@ -376,16 +576,14 @@ const Admin = () => {
                 value={userFilters.role}
                 onChange={(event) => setUserFilters((prev) => ({ ...prev, role: event.target.value }))}
               >
-                <option value="">Todos os papéis</option>
-                <option value="ADMIN">Admin</option>
-                <option value="BARBEIRO">Barbeiro</option>
-                <option value="USER">Cliente</option>
+                <option value="">Todos os papeis</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="BARBEIRO">BARBEIRO</option>
+                <option value="USER">USER</option>
               </select>
               <select
                 value={userFilters.status}
-                onChange={(event) =>
-                  setUserFilters((prev) => ({ ...prev, status: event.target.value }))
-                }
+                onChange={(event) => setUserFilters((prev) => ({ ...prev, status: event.target.value }))}
               >
                 <option value="">Todos os status</option>
                 <option value="true">Ativo</option>
@@ -396,65 +594,72 @@ const Admin = () => {
               </button>
             </div>
           </div>
+
           <div className="panel-body">
-            <div className="panel-list">
-              {users.map((userItem) => (
-                <article key={userItem.username} className="row-card">
-                  <div className="row-main">
-                    <strong>{userItem.name}</strong>
-                    <span>@{userItem.username}</span>
-                    <span>{userItem.email}</span>
-                  </div>
-                  <div className="row-meta">
-                    <span className="tag">{userItem.role}</span>
-                    <span className={`tag ${userItem.status ? "tag--success" : "tag--danger"}`}>
-                      {userItem.status ? "Ativo" : "Inativo"}
-                    </span>
-                  </div>
-                  <div className="row-actions">
-                    <select
-                      value={userItem.role}
-                      onChange={async (event) => {
-                        try {
-                          await updateUserRole(userItem.username, event.target.value);
-                          toast({ variant: "success", message: "Role atualizada." });
-                          loadUsers();
-                        } catch (error) {
-                          toast({ variant: "error", message: getErrorMessage(error) });
-                        }
-                      }}
-                    >
-                      <option value="ADMIN">ADMIN</option>
-                      <option value="BARBEIRO">BARBEIRO</option>
-                      <option value="USER">USER</option>
-                    </select>
-                    <button
-                      type="button"
-                      className="ghost-action"
-                      onClick={async () => {
-                        try {
-                          await updateUserStatus(userItem.username, !userItem.status);
-                          loadUsers();
-                        } catch (error) {
-                          toast({ variant: "error", message: getErrorMessage(error) });
-                        }
-                      }}
-                    >
-                      {userItem.status ? "Desativar" : "Ativar"}
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {usersEmpty ? <p className="muted">Nenhum usuário encontrado.</p> : null}
+            {!users.length ? (
+              <p className="muted">Nenhum usuario encontrado.</p>
+            ) : (
+              <div className="panel-list">
+                {users.map((userItem) => (
+                  <article key={userItem.username} className="row-card">
+                    <div className="row-main">
+                      <strong>{userItem.name}</strong>
+                      <span>@{userItem.username}</span>
+                      <span>{userItem.email}</span>
+                    </div>
+                    <div className="row-meta">
+                      <span className="tag">{userItem.role}</span>
+                      <span className={`tag ${userItem.status ? "tag--success" : "tag--danger"}`}>
+                        {userItem.status ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
+                    <div className="row-actions">
+                      <select
+                        value={userItem.role}
+                        onChange={async (event) => {
+                          try {
+                            await updateUserRole(userItem.username, event.target.value);
+                            toast({ variant: "success", message: "Role atualizada." });
+                            loadUsers();
+                          } catch (error) {
+                            toast({ variant: "error", message: getErrorMessage(error) });
+                          }
+                        }}
+                      >
+                        <option value="ADMIN">ADMIN</option>
+                        <option value="BARBEIRO">BARBEIRO</option>
+                        <option value="USER">USER</option>
+                      </select>
+
+                      <button
+                        type="button"
+                        className="ghost-action"
+                        onClick={async () => {
+                          try {
+                            await updateUserStatus(userItem.username, !userItem.status);
+                            loadUsers();
+                          } catch (error) {
+                            toast({ variant: "error", message: getErrorMessage(error) });
+                          }
+                        }}
+                      >
+                        {userItem.status ? "Desativar" : "Ativar"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {usersEmpty ? <p className="muted">Sem resultados para os filtros.</p> : null}
           </div>
         </section>
 
-        <section className="panel" data-reveal="delay-2">
+        <section className="panel" data-reveal="delay-3">
           <div className="panel-header">
-            <h3>Serviços</h3>
-            <p className="muted">Crie, edite e ative/desative serviços.</p>
+            <h3>Servicos</h3>
+            <p className="muted">Cadastro, edicao e status dos servicos.</p>
           </div>
+
           <div className="panel-body">
             <form className="panel-form" onSubmit={handleServiceSubmit}>
               <div className="form-grid">
@@ -463,7 +668,7 @@ const Admin = () => {
                   <input
                     id="service-name"
                     type="text"
-                    placeholder="Corte Masculino"
+                    placeholder="Corte classico"
                     required
                     value={serviceForm.name}
                     onChange={(event) =>
@@ -471,8 +676,9 @@ const Admin = () => {
                     }
                   />
                 </div>
+
                 <div className="form-field">
-                  <label htmlFor="service-price">Preço</label>
+                  <label htmlFor="service-price">Preco</label>
                   <input
                     id="service-price"
                     type="text"
@@ -484,8 +690,9 @@ const Admin = () => {
                     }
                   />
                 </div>
+
                 <div className="form-field">
-                  <label htmlFor="service-duration">Duração (min)</label>
+                  <label htmlFor="service-duration">Duracao (min)</label>
                   <input
                     id="service-duration"
                     type="number"
@@ -499,6 +706,7 @@ const Admin = () => {
                     }
                   />
                 </div>
+
                 <div className="form-field">
                   <label htmlFor="service-status">Ativo</label>
                   <select
@@ -509,9 +717,10 @@ const Admin = () => {
                     }
                   >
                     <option value="true">Sim</option>
-                    <option value="false">Não</option>
+                    <option value="false">Nao</option>
                   </select>
                 </div>
+
                 <div className="form-field">
                   <label htmlFor="service-image">Imagem</label>
                   <input
@@ -525,51 +734,61 @@ const Admin = () => {
                   />
                 </div>
               </div>
+
               <div className="form-actions">
                 <button className="primary-action" type="submit">
-                  {serviceForm.id ? "Salvar alterações" : "Salvar serviço"}
+                  {serviceForm.id ? "Salvar alteracoes" : "Salvar servico"}
                 </button>
                 {serviceForm.id ? (
                   <button className="ghost-action" type="button" onClick={resetServiceForm}>
-                    Cancelar edição
+                    Cancelar edicao
                   </button>
                 ) : null}
               </div>
             </form>
 
-            <div className="panel-list">
-              {services.map((service) => (
-                <article key={service.id} className="row-card">
-                  <div className="row-main">
-                    <strong>{service.name}</strong>
-                    <span>{formatCurrency(service.price)}</span>
-                    <span>Duração: {service.duration} min</span>
-                  </div>
-                  <div className="row-meta">
-                    <span className={`tag ${service.status === false ? "tag--danger" : "tag--success"}`}>
-                      {service.status === false ? "Inativo" : "Ativo"}
-                    </span>
-                  </div>
-                  <div className="row-actions">
-                    <button className="ghost-action" type="button" onClick={() => fillServiceForm(service)}>
-                      Editar
-                    </button>
-                    <button className="danger-action" type="button" onClick={() => handleDeleteService(service)}>
-                      Excluir
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {servicesEmpty ? <p className="muted">Nenhum serviço cadastrado.</p> : null}
+            {!services.length ? (
+              <p className="muted">Nenhum servico cadastrado.</p>
+            ) : (
+              <div className="panel-list">
+                {services.map((service) => (
+                  <article key={service.id} className="row-card">
+                    <div className="row-main">
+                      <strong>{service.name}</strong>
+                      <span>{formatCurrency(service.price)}</span>
+                      <span>Duracao: {service.duration || "-"} min</span>
+                    </div>
+                    <div className="row-meta">
+                      <span className={`tag ${service.status === false ? "tag--danger" : "tag--success"}`}>
+                        {service.status === false ? "Inativo" : "Ativo"}
+                      </span>
+                    </div>
+                    <div className="row-actions">
+                      <button className="ghost-action" type="button" onClick={() => fillServiceForm(service)}>
+                        Editar
+                      </button>
+                      <button
+                        className="danger-action"
+                        type="button"
+                        onClick={() => handleDeleteService(service)}
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {servicesEmpty ? <p className="muted">Falha ao carregar servicos.</p> : null}
           </div>
         </section>
 
-        <section className="panel" data-reveal="delay-3">
+        <section className="panel" data-reveal="delay-4">
           <div className="panel-header">
             <h3>Indisponibilidades</h3>
-            <p className="muted">Registre períodos em que barbeiros não atendem.</p>
+            <p className="muted">Registre periodos sem atendimento por barbeiro.</p>
           </div>
+
           <div className="panel-body">
             <form className="panel-form" onSubmit={handleIndisponibilidadeSubmit}>
               <div className="form-grid">
@@ -579,9 +798,9 @@ const Admin = () => {
                     id="ind-barbeiro"
                     value={indForm.barbeiroUsername}
                     onChange={(event) => {
-                      const value = event.target.value;
-                      setIndForm((prev) => ({ ...prev, barbeiroUsername: value }));
-                      loadIndisponibilidades(value);
+                      const username = event.target.value;
+                      setIndForm((prev) => ({ ...prev, barbeiroUsername: username }));
+                      loadIndisponibilidades(username);
                     }}
                     required
                   >
@@ -593,6 +812,7 @@ const Admin = () => {
                     ))}
                   </select>
                 </div>
+
                 <div className="form-field">
                   <label htmlFor="ind-tipo">Tipo</label>
                   <select
@@ -601,14 +821,15 @@ const Admin = () => {
                     onChange={(event) => setIndForm((prev) => ({ ...prev, tipo: event.target.value }))}
                     required
                   >
-                    <option value="FERIAS">Férias</option>
+                    <option value="FERIAS">Ferias</option>
                     <option value="PAUSA">Pausa</option>
-                    <option value="MANUTENCAO">Manutenção</option>
+                    <option value="MANUTENCAO">Manutencao</option>
                     <option value="OUTRO">Outro</option>
                   </select>
                 </div>
+
                 <div className="form-field">
-                  <label htmlFor="ind-inicio">Início</label>
+                  <label htmlFor="ind-inicio">Inicio</label>
                   <input
                     id="ind-inicio"
                     type="datetime-local"
@@ -617,6 +838,7 @@ const Admin = () => {
                     required
                   />
                 </div>
+
                 <div className="form-field">
                   <label htmlFor="ind-fim">Fim</label>
                   <input
@@ -628,6 +850,7 @@ const Admin = () => {
                   />
                 </div>
               </div>
+
               <div className="form-actions">
                 <button className="primary-action" type="submit">
                   Adicionar indisponibilidade
@@ -635,41 +858,45 @@ const Admin = () => {
               </div>
             </form>
 
-            <div className="panel-list">
-              {indisponibilidades.map((item) => (
-                <article key={item.id} className="row-card">
-                  <div className="row-main">
-                    <strong>{item.tipo}</strong>
-                    <span>@{item.barbeiroUsername}</span>
-                    <span>{new Date(item.inicio).toLocaleString("pt-BR")}</span>
-                    <span>{new Date(item.fim).toLocaleString("pt-BR")}</span>
-                  </div>
-                  <div className="row-actions">
-                    <button
-                      className="danger-action"
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await deleteIndisponibilidade(item.id);
-                          loadIndisponibilidades(indForm.barbeiroUsername);
-                        } catch (error) {
-                          toast({ variant: "error", message: getErrorMessage(error) });
-                        }
-                      }}
-                    >
-                      Remover
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {indisponibilidadesEmpty ? <p className="muted">Nenhuma indisponibilidade cadastrada.</p> : null}
+            {!indisponibilidades.length ? (
+              <p className="muted">Nenhuma indisponibilidade cadastrada.</p>
+            ) : (
+              <div className="panel-list">
+                {indisponibilidades.map((item) => (
+                  <article key={item.id} className="row-card">
+                    <div className="row-main">
+                      <strong>{item.tipo}</strong>
+                      <span>@{item.barbeiroUsername}</span>
+                      <span>{new Date(item.inicio).toLocaleString("pt-BR")}</span>
+                      <span>{new Date(item.fim).toLocaleString("pt-BR")}</span>
+                    </div>
+                    <div className="row-actions">
+                      <button
+                        className="danger-action"
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await deleteIndisponibilidade(item.id);
+                            loadIndisponibilidades(indForm.barbeiroUsername);
+                          } catch (error) {
+                            toast({ variant: "error", message: getErrorMessage(error) });
+                          }
+                        }}
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {indisponibilidadesEmpty ? <p className="muted">Sem resultados para o barbeiro.</p> : null}
           </div>
         </section>
 
-        <section className="panel" data-reveal="delay-4">
+        <section className="panel" data-reveal="delay-5">
           <div className="panel-header">
-            <h3>Comissões</h3>
+            <h3>Comissoes</h3>
             <div className="panel-actions">
               <input
                 type="date"
@@ -710,89 +937,88 @@ const Admin = () => {
               </button>
             </div>
           </div>
+
           <div className="panel-body">
-            <div className="panel-list">
-              {commissions.map((item) => (
-                <article key={item.id} className="row-card">
-                  <div className="row-main">
-                    <strong>{item.barbeiroNome || item.barbeiroUsername}</strong>
-                    <span>@{item.barbeiroUsername || "-"}</span>
-                    <span>{item.servicoNome || "-"}</span>
-                  </div>
-                  <div className="row-meta">
-                    <span className="tag">{formatCurrency(item.valor)}</span>
-                    <span className="tag">{item.percentual}%</span>
-                    <span className="tag">
-                      {item.dataDeCriacao
-                        ? new Date(item.dataDeCriacao).toLocaleString("pt-BR", {
-                            dateStyle: "short",
-                            timeStyle: "short"
-                          })
-                        : "-"}
-                    </span>
-                  </div>
-                  <div className="row-actions">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      defaultValue={item.percentual ?? ""}
-                      title="Percentual da comissão"
-                    />
-                    <button
-                      className="ghost-action"
-                      type="button"
-                      onClick={async (event) => {
-                        const input = event.currentTarget.parentElement?.querySelector("input");
-                        const percentual = Number(String(input?.value || "").replace(",", "."));
-                        if (!Number.isFinite(percentual)) {
-                          toast({ variant: "warning", message: "Informe um percentual válido." });
-                          return;
-                        }
-                        try {
-                          await updateCommission(item.id, { percentual });
-                          toast({ variant: "success", message: "Taxa atualizada." });
-                          loadCommissions();
-                          loadCash();
-                        } catch (error) {
-                          toast({ variant: "error", message: getErrorMessage(error) });
-                        }
-                      }}
-                    >
-                      Atualizar taxa
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {commissionsEmpty ? <p className="muted">Nenhuma comissão encontrada.</p> : null}
+            {!commissions.length ? (
+              <p className="muted">Nenhuma comissao encontrada.</p>
+            ) : (
+              <div className="panel-list">
+                {commissions.map((item) => (
+                  <article key={item.id} className="row-card">
+                    <div className="row-main">
+                      <strong>{item.barbeiroNome || item.barbeiroUsername || "-"}</strong>
+                      <span>@{item.barbeiroUsername || "-"}</span>
+                      <span>{item.servicoNome || "-"}</span>
+                    </div>
+                    <div className="row-meta">
+                      <span className="tag">{formatCurrency(item.valor)}</span>
+                      <span className="tag">{item.percentual}%</span>
+                      <span className="tag">
+                        {item.dataDeCriacao
+                          ? new Date(item.dataDeCriacao).toLocaleString("pt-BR", {
+                              dateStyle: "short",
+                              timeStyle: "short"
+                            })
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="row-actions">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        defaultValue={item.percentual ?? ""}
+                        title="Percentual da comissao"
+                      />
+                      <button
+                        className="ghost-action"
+                        type="button"
+                        onClick={async (event) => {
+                          const input = event.currentTarget.parentElement?.querySelector("input");
+                          const percentual = Number(String(input?.value || "").replace(",", "."));
+                          if (!Number.isFinite(percentual)) {
+                            toast({ variant: "warning", message: "Informe um percentual valido." });
+                            return;
+                          }
+                          try {
+                            await updateCommission(item.id, { percentual });
+                            toast({ variant: "success", message: "Taxa atualizada." });
+                            loadCommissions();
+                            loadCash();
+                          } catch (error) {
+                            toast({ variant: "error", message: getErrorMessage(error) });
+                          }
+                        }}
+                      >
+                        Atualizar taxa
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {commissionsEmpty ? <p className="muted">Falha ao carregar comissoes.</p> : null}
           </div>
         </section>
 
-        <section className="panel" data-reveal="delay-5">
+        <section className="panel" data-reveal="delay-6">
           <div className="panel-header">
             <h3>Caixa</h3>
             <div className="panel-actions">
               <input
                 type="date"
                 value={cashFilters.inicio}
-                onChange={(event) =>
-                  setCashFilters((prev) => ({ ...prev, inicio: event.target.value }))
-                }
+                onChange={(event) => setCashFilters((prev) => ({ ...prev, inicio: event.target.value }))}
               />
               <input
                 type="date"
                 value={cashFilters.fim}
-                onChange={(event) =>
-                  setCashFilters((prev) => ({ ...prev, fim: event.target.value }))
-                }
+                onChange={(event) => setCashFilters((prev) => ({ ...prev, fim: event.target.value }))}
               />
               <select
                 value={cashFilters.tipo}
-                onChange={(event) =>
-                  setCashFilters((prev) => ({ ...prev, tipo: event.target.value }))
-                }
+                onChange={(event) => setCashFilters((prev) => ({ ...prev, tipo: event.target.value }))}
               >
                 <option value="">Todos</option>
                 <option value="ENTRADA">Entrada</option>
@@ -803,6 +1029,7 @@ const Admin = () => {
               </button>
             </div>
           </div>
+
           <div className="panel-body">
             <form className="panel-form" onSubmit={handleCashSubmit}>
               <div className="form-grid">
@@ -818,12 +1045,13 @@ const Admin = () => {
                     <option value="SAIDA">Saida</option>
                   </select>
                 </div>
+
                 <div className="form-field">
                   <label htmlFor="cash-descricao">Descricao</label>
                   <input
                     id="cash-descricao"
                     type="text"
-                    placeholder="Produto, aluguel..."
+                    placeholder="Produto, aluguel, insumo..."
                     required
                     value={cashForm.descricao}
                     onChange={(event) =>
@@ -831,6 +1059,7 @@ const Admin = () => {
                     }
                   />
                 </div>
+
                 <div className="form-field">
                   <label htmlFor="cash-valor">Valor</label>
                   <input
@@ -842,6 +1071,7 @@ const Admin = () => {
                     onChange={(event) => setCashForm((prev) => ({ ...prev, valor: event.target.value }))}
                   />
                 </div>
+
                 <div className="form-field">
                   <label htmlFor="cash-barbeiro">Barbeiro</label>
                   <input
@@ -855,9 +1085,10 @@ const Admin = () => {
                   />
                 </div>
               </div>
+
               <div className="form-actions">
                 <button className="primary-action" type="submit">
-                  Adicionar lançamento
+                  Adicionar lancamento
                 </button>
               </div>
             </form>
@@ -877,41 +1108,51 @@ const Admin = () => {
               </div>
             </div>
 
-            <div className="panel-list">
-              {cashEntries.map((item) => (
-                <article key={item.id} className="row-card">
-                  <div className="row-main">
-                    <strong>{item.descricao}</strong>
-                    <span>{item.barbeiroUsername ? `@${item.barbeiroUsername}` : "Sem barbeiro"}</span>
-                    <span>{item.agendamentoId ? `Agendamento ${item.agendamentoId}` : "Lançamento manual"}</span>
-                  </div>
-                  <div className="row-meta">
-                    <span className={`tag ${item.tipo === "ENTRADA" ? "tag--success" : "tag--danger"}`}>
-                      {item.tipo}
-                    </span>
-                    <span className="tag">{formatCurrency(item.valor)}</span>
-                    {item.valorBarbeiro != null || item.valorBarbearia != null ? (
-                      <span className="tag">
-                        {[item.valorBarbeiro != null ? `Barbeiro: ${formatCurrency(item.valorBarbeiro)}` : null,
-                        item.valorBarbearia != null ? `Barbearia: ${formatCurrency(item.valorBarbearia)}` : null,
-                        item.percentualComissao != null ? `Taxa: ${item.percentualComissao}%` : null]
-                          .filter(Boolean)
-                          .join(" • ")}
+            {!cashEntries.length ? (
+              <p className="muted">Nenhum lancamento encontrado.</p>
+            ) : (
+              <div className="panel-list">
+                {cashEntries.map((item) => (
+                  <article key={item.id} className="row-card">
+                    <div className="row-main">
+                      <strong>{item.descricao}</strong>
+                      <span>{item.barbeiroUsername ? `@${item.barbeiroUsername}` : "Sem barbeiro"}</span>
+                      <span>{item.agendamentoId ? `Agendamento ${item.agendamentoId}` : "Lancamento manual"}</span>
+                    </div>
+                    <div className="row-meta">
+                      <span className={`tag ${item.tipo === "ENTRADA" ? "tag--success" : "tag--danger"}`}>
+                        {item.tipo}
                       </span>
-                    ) : null}
-                    <span className="tag">
-                      {item.dataDeCriacao
-                        ? new Date(item.dataDeCriacao).toLocaleString("pt-BR", {
-                            dateStyle: "short",
-                            timeStyle: "short"
-                          })
-                        : "-"}
-                    </span>
-                  </div>
-                </article>
-              ))}
-            </div>
-            {cashEmpty ? <p className="muted">Nenhum lançamento encontrado.</p> : null}
+                      <span className="tag">{formatCurrency(item.valor)}</span>
+                      {item.valorBarbeiro != null || item.valorBarbearia != null ? (
+                        <span className="tag">
+                          {[
+                            item.valorBarbeiro != null
+                              ? `Barbeiro: ${formatCurrency(item.valorBarbeiro)}`
+                              : null,
+                            item.valorBarbearia != null
+                              ? `Barbearia: ${formatCurrency(item.valorBarbearia)}`
+                              : null,
+                            item.percentualComissao != null ? `Taxa: ${item.percentualComissao}%` : null
+                          ]
+                            .filter(Boolean)
+                            .join(" | ")}
+                        </span>
+                      ) : null}
+                      <span className="tag">
+                        {item.dataDeCriacao
+                          ? new Date(item.dataDeCriacao).toLocaleString("pt-BR", {
+                              dateStyle: "short",
+                              timeStyle: "short"
+                            })
+                          : "-"}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {cashEmpty ? <p className="muted">Falha ao carregar lancamentos.</p> : null}
           </div>
         </section>
       </main>
@@ -921,6 +1162,3 @@ const Admin = () => {
 };
 
 export default Admin;
-
-
-

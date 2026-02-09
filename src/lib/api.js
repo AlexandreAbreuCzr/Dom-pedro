@@ -8,6 +8,7 @@ const defaultConfig = {
     passwordResetConfirm: "/auth/password/reset",
     services: "/servico",
     appointments: "/agendamento",
+    appointmentAvailability: "/agendamento/disponibilidade",
     myAppointments: "/agendamento/me",
     cancelAppointment: (id) => `/agendamento/${id}/cancelar`,
     acceptAppointment: (id) => `/agendamento/${id}/aceitar`,
@@ -376,6 +377,19 @@ const getAppointments = (filters = {}) => {
   });
 };
 
+const getAppointmentAvailability = ({ barberUsername, serviceId, startDate, endDate }) => {
+  const params = new URLSearchParams({
+    barbeiroUserName: barberUsername,
+    servicoId: String(serviceId),
+    inicio: startDate,
+    fim: endDate
+  });
+
+  return apiRequest(`${config.endpoints.appointmentAvailability}?${params.toString()}`, {
+    method: "GET"
+  });
+};
+
 const acceptAppointment = (id) =>
   apiRequest(config.endpoints.acceptAppointment(id), { method: "PATCH" });
 
@@ -538,6 +552,7 @@ export {
   cancelAppointment,
   getMyAppointments,
   getAppointments,
+  getAppointmentAvailability,
   acceptAppointment,
   concludeAppointment,
   getIndisponibilidades,

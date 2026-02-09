@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer.jsx";
 import { Header } from "../components/Header.jsx";
+import { MonthCalendar, calendarUtils } from "../components/MonthCalendar.jsx";
 import { useToast } from "../components/ToastProvider.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import {
@@ -10,6 +11,7 @@ import {
   formatCurrency,
   formatDateBr,
   formatTime,
+  getAppointmentAvailability,
   getBarbers,
   getErrorMessage,
   getMyAppointments,
@@ -21,86 +23,57 @@ import {
 } from "../lib/api.js";
 
 const fallbackServices = [
-  { id: 1, name: "Corte Masculino", description: "Corte moderno ou clássico.", price: 45 },
-  { id: 2, name: "Barba", description: "Modelagem com toalha quente.", price: 25 },
+  { id: 1, name: "Corte", description: "Corte classico ou moderno.", price: 45 },
+  { id: 2, name: "Barba", description: "Modelagem com acabamento.", price: 25 },
   { id: 3, name: "Sobrancelha", description: "Design e alinhamento.", price: 15 }
 ];
 
-const parseDate = (dateStr) => {
-  if (!dateStr) return null;
-  const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
+const toMonthRange = (date) => {
+  const start = calendarUtils.startOfMonth(date);
+  const end = calendarUtils.endOfMonth(date);
+  return {
+    startDate: calendarUtils.toIso(start),
+    endDate: calendarUtils.toIso(end)
+  };
 };
 
-const isSunday = (dateStr) => {
-  const date = parseDate(dateStr);
-  return date ? date.getDay() === 0 : false;
-};
+const normalizeSlots = (slots) =>
+  (Array.isArray(slots) ? slots : [])
+    .map((slot) => formatTime(String(slot)))
+    .filter(Boolean);
 
-const isDateAllowed = (dateStr, timeStr) => {
-  if (!dateStr) return false;
-  if (isSunday(dateStr)) return false;
-  const date = parseDate(dateStr);
-  if (!date) return false;
-
-  if (!timeStr) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date >= today;
-  }
-
-  const [hours, minutes] = timeStr.split(":").map(Number);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return false;
-  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes, 0, 0);
-  const minAllowed = new Date();
-  minAllowed.setMinutes(minAllowed.getMinutes() + 15);
-  return target >= minAllowed;
+const statusClass = (status) => {
+  if (status === "AGENDADO") return "tag--success";
+  if (status === "CONCLUIDO") return "tag--info";
+  if (status === "CANCELADO") return "tag--danger";
+  return "";
 };
 
 const Booking = () => {
   const { token, user, refreshUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
   const [services, setServices] = useState([]);
   const [barbers, setBarbers] = useState([]);
   const [appointments, setAppointments] = useState([]);
-  const [editingId, setEditingId] = useState(null);
-  const [formState, setFormState] = useState({
-    barbeiroUsername: "",
-    servicoId: "",
-    data: "",
-    hora: ""
-  });
-  const [loading, setLoading] = useState(false);
-  const [note, setNote] = useState("Selecione serviço e horário.");
-  const [serviceDuration, setServiceDuration] = useState("");
 
-  useEffect(() => {
-    if (!token) {
-      navigate("/login?redirect=/agendamento");
-    }
-  }, [token, navigate]);
+  const [selectedBarber, setSelectedBarber] = useState("");
+  const [selectedService, setSelectedService] = useState("");
+  const [monthDate, setMonthDate] = useState(calendarUtils.startOfMonth(new Date()));
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
 
-  const updateNote = (servicesCount, barbersCount) => {
-    const parts = [];
-    if (servicesCount) parts.push(`${servicesCount} serviços disponíveis`);
-    if (barbersCount) parts.push(`${barbersCount} profissionais disponíveis`);
-    setNote(parts.length ? `${parts.join(" | ")}.` : "Selecione serviço e horário.");
-  };
+  const [availabilityMap, setAvailabilityMap] = useState({});
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityMessage, setAvailabilityMessage] = useState(
+    "Selecione profissional e servico para ver disponibilidade."
+  );
 
-  const updateDuration = (serviceId, serviceList) => {
-    if (!serviceId) {
-      setServiceDuration("");
-      return;
-    }
-    const found = serviceList.find((service) => String(service.id) === String(serviceId));
-    const durationValue = Number(found?.duracaoEmMinutos ?? found?.duration);
-    setServiceDuration(
-      Number.isFinite(durationValue) && durationValue > 0
-        ? `Duração média: ${durationValue} min`
-        : ""
-    );
-  };
+  const [editingAppointment, setEditingAppointment] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const todayIso = calendarUtils.toIso(new Date());
 
   const loadServices = async () => {
     try {
@@ -108,13 +81,10 @@ const Booking = () => {
       const list = Array.isArray(data) ? data : data?.content || data?.servicos || [];
       const normalized = list
         .map(normalizeService)
-        .filter((item) => item.name && item.status !== false);
-      if (!normalized.length) throw new Error("Lista vazia");
-      setServices(normalized);
-      updateNote(normalized.length, barbers.length);
+        .filter((service) => service.name && service.status !== false);
+      setServices(normalized.length ? normalized : fallbackServices);
     } catch (error) {
       setServices(fallbackServices);
-      updateNote(fallbackServices.length, barbers.length);
     }
   };
 
@@ -122,14 +92,10 @@ const Booking = () => {
     try {
       const data = await getBarbers();
       const list = Array.isArray(data) ? data : data?.content || data?.usuarios || [];
-      const normalized = list
-        .map(normalizeBarber)
-        .filter((barber) => barber.username);
+      const normalized = list.map(normalizeBarber).filter((barber) => barber.username);
       setBarbers(normalized);
-      updateNote(services.length, normalized.length);
     } catch (error) {
       setBarbers([]);
-      updateNote(services.length, 0);
     }
   };
 
@@ -138,15 +104,20 @@ const Booking = () => {
     try {
       const data = await getMyAppointments();
       const list = Array.isArray(data) ? data : data?.content || data?.agendamentos || [];
-      setAppointments(list.map(normalizeAppointment));
+      const normalized = list.map(normalizeAppointment);
+      setAppointments(normalized);
     } catch (error) {
       setAppointments([]);
-      toast({ variant: "error", message: "Não foi possível carregar seus agendamentos." });
+      toast({ variant: "error", message: "Nao foi possivel carregar seus agendamentos." });
     }
   };
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      navigate("/login?redirect=/agendamento");
+      return;
+    }
+
     refreshUser();
     loadServices();
     loadBarbers();
@@ -154,111 +125,218 @@ const Booking = () => {
   }, [token]);
 
   useEffect(() => {
-    updateDuration(formState.servicoId, services);
-  }, [formState.servicoId, services]);
-
-  const handleEdit = (appointment) => {
-    setEditingId(appointment.id);
-    setFormState({
-      barbeiroUsername: appointment.barbeiroUsername || "",
-      servicoId: appointment.serviceId ? String(appointment.serviceId) : "",
-      data: appointment.date || "",
-      hora: formatTime(appointment.time || "")
-    });
-  };
-
-  const resetForm = () => {
-    setEditingId(null);
-    setFormState({ barbeiroUsername: "", servicoId: "", data: "", hora: "" });
-  };
-
-  const handleCancel = async (appointment) => {
-    if (!appointment?.id) return;
-    try {
-      setLoading(true);
-      await cancelAppointment(appointment.id);
-      toast({ variant: "success", message: "Agendamento cancelado." });
-      resetForm();
-      loadAppointments();
-    } catch (error) {
-      toast({ variant: "error", message: getErrorMessage(error) });
-    } finally {
-      setLoading(false);
+    if (!selectedService && services.length) {
+      setSelectedService(String(services[0].id));
     }
+  }, [services, selectedService]);
+
+  useEffect(() => {
+    if (!selectedBarber && barbers.length) {
+      setSelectedBarber(barbers[0].username);
+    }
+  }, [barbers, selectedBarber]);
+
+  useEffect(() => {
+    if (!token || !selectedBarber || !selectedService) {
+      setAvailabilityMap({});
+      setSelectedDate("");
+      setSelectedTime("");
+      setAvailabilityMessage("Selecione profissional e servico para ver disponibilidade.");
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadAvailability = async () => {
+      setAvailabilityLoading(true);
+      const { startDate, endDate } = toMonthRange(monthDate);
+
+      try {
+        const data = await getAppointmentAvailability({
+          barberUsername: selectedBarber,
+          serviceId: Number(selectedService),
+          startDate,
+          endDate
+        });
+
+        if (cancelled) return;
+
+        const days = Array.isArray(data?.dias) ? data.dias : [];
+        const mapped = {};
+
+        days.forEach((day) => {
+          const date = day?.data || day?.date;
+          if (!date) return;
+          const slots = normalizeSlots(day?.horariosDisponiveis || day?.availableTimes);
+          const available = Boolean(day?.disponivel) && slots.length > 0;
+
+          mapped[date] = {
+            state: available ? "available" : "unavailable",
+            count: slots.length,
+            label: available ? `${slots.length} horarios` : "sem vagas",
+            disabled: !available,
+            slots
+          };
+        });
+
+        setAvailabilityMap(mapped);
+        setAvailabilityMessage("Calendario atualizado com disponibilidade real da agenda.");
+
+        setSelectedDate((currentDate) => {
+          if (currentDate && mapped[currentDate]?.slots?.length) {
+            return currentDate;
+          }
+          const firstAvailable = Object.entries(mapped).find(([, value]) => value.slots?.length)?.[0];
+          return firstAvailable || "";
+        });
+      } catch (error) {
+        if (cancelled) return;
+        setAvailabilityMap({});
+        setSelectedDate("");
+        setSelectedTime("");
+        setAvailabilityMessage(getErrorMessage(error));
+      } finally {
+        if (!cancelled) setAvailabilityLoading(false);
+      }
+    };
+
+    loadAvailability();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, selectedBarber, selectedService, monthDate]);
+
+  useEffect(() => {
+    if (!selectedDate) {
+      setSelectedTime("");
+      return;
+    }
+
+    const slots = availabilityMap[selectedDate]?.slots || [];
+    setSelectedTime((current) => (slots.includes(current) ? current : slots[0] || ""));
+  }, [selectedDate, availabilityMap]);
+
+  const selectedServiceData = useMemo(
+    () => services.find((service) => String(service.id) === String(selectedService)),
+    [services, selectedService]
+  );
+
+  const selectedBarberData = useMemo(
+    () => barbers.find((barber) => barber.username === selectedBarber),
+    [barbers, selectedBarber]
+  );
+
+  const availableSlots = selectedDate ? availabilityMap[selectedDate]?.slots || [] : [];
+
+  const rules = [
+    "Horario comercial: 09:00-12:00 e 13:00-20:00.",
+    "Intervalos de 15 minutos com base na duracao do servico.",
+    "Domingo sem atendimento.",
+    "Necessario minimo de 15 minutos de antecedencia.",
+    "Bloqueios por indisponibilidade do barbeiro sao respeitados."
+  ];
+
+  const resetBookingFlow = () => {
+    setEditingAppointment(null);
+    setSelectedDate("");
+    setSelectedTime("");
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     if (!token) {
-      toast({ variant: "warning", message: "Faça login para finalizar o agendamento." });
+      toast({ variant: "warning", message: "Faca login para concluir o agendamento." });
       navigate("/login?redirect=/agendamento");
       return;
     }
 
-    const payload = {
-      clienteUsername: user?.username,
-      barbeiroUsername: formState.barbeiroUsername || null,
-      servicoId: formState.servicoId ? Number(formState.servicoId) : "",
-      data: formState.data,
-      hora: formState.hora
-    };
-
-    if (!payload.clienteUsername) {
-      toast({ variant: "warning", message: "Faça login novamente para confirmar seu usuário." });
-      return;
-    }
-    if (!payload.servicoId || !payload.data || !payload.hora) {
-      toast({ variant: "warning", message: "Preencha serviço, data e horário." });
-      return;
-    }
-    if (!isDateAllowed(payload.data, payload.hora)) {
-      toast({
-        variant: "warning",
-        message: "Escolha uma data válida com pelo menos 15 minutos de antecedência."
-      });
+    if (!selectedBarber || !selectedService || !selectedDate || !selectedTime) {
+      toast({ variant: "warning", message: "Selecione barbeiro, servico, dia e horario." });
       return;
     }
 
     try {
-      setLoading(true);
-      if (editingId) {
-        await updateAppointment(editingId, { data: payload.data, hora: payload.hora });
-        toast({ variant: "success", message: "Agendamento atualizado." });
+      setSubmitting(true);
+
+      if (editingAppointment?.id) {
+        await updateAppointment(editingAppointment.id, {
+          data: selectedDate,
+          hora: selectedTime
+        });
+        toast({ variant: "success", message: "Agendamento remarcado com sucesso." });
       } else {
-        await createAppointment(payload);
-        toast({ variant: "success", message: "Agendamento confirmado." });
+        const me = user?.username ? user : await refreshUser();
+
+        await createAppointment({
+          clienteUsername: me?.username,
+          barbeiroUsername: selectedBarber,
+          servicoId: Number(selectedService),
+          data: selectedDate,
+          hora: selectedTime
+        });
+
+        toast({ variant: "success", message: "Agendamento criado com sucesso." });
       }
-      resetForm();
+
+      resetBookingFlow();
       loadAppointments();
     } catch (error) {
       toast({ variant: "error", message: getErrorMessage(error) });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const serviceNameFor = (serviceId) => {
-    const found = services.find((service) => String(service.id) === String(serviceId));
-    return found?.name || (serviceId ? `Serviço #${serviceId}` : "Serviço");
+  const handleCancelAppointment = async (appointmentId) => {
+    if (!appointmentId) return;
+
+    try {
+      setSubmitting(true);
+      await cancelAppointment(appointmentId);
+      toast({ variant: "success", message: "Agendamento cancelado." });
+      if (editingAppointment?.id === appointmentId) resetBookingFlow();
+      loadAppointments();
+    } catch (error) {
+      toast({ variant: "error", message: getErrorMessage(error) });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const appointmentsEmptyMessage = token
-    ? "Você ainda não possui agendamentos."
-    : "Faça login para visualizar seus agendamentos.";
+  const handleReschedule = (appointment) => {
+    if (!appointment?.id) return;
 
-  const servicesOptions = useMemo(
-    () =>
-      services.length
-        ? services
-        : fallbackServices.map((service) => ({ ...service, name: service.name })),
-    [services]
-  );
+    if (!appointment.barbeiroUsername || !appointment.serviceId) {
+      toast({
+        variant: "warning",
+        message: "Nao foi possivel abrir remarcacao interativa para este agendamento."
+      });
+      return;
+    }
+
+    setEditingAppointment(appointment);
+    setSelectedBarber(appointment.barbeiroUsername);
+    setSelectedService(String(appointment.serviceId));
+
+    if (appointment.date) {
+      const [year, month, day] = appointment.date.split("-").map(Number);
+      if (year && month && day) {
+        setMonthDate(new Date(year, month - 1, 1));
+        setSelectedDate(appointment.date);
+      }
+    }
+
+    setSelectedTime(formatTime(appointment.time || ""));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const navLinks = [
-    { label: "Serviços", href: "/#services" },
+    { label: "Servicos", href: "/#services" },
     { label: "Sobre", href: "/#about" },
-    { label: "Informações", href: "/#info" },
-    { label: "Avaliações", href: "/#reviews" },
+    { label: "Informacoes", href: "/#info" },
+    { label: "Avaliacoes", href: "/#reviews" },
     { label: "Agendar", href: "/agendamento" }
   ];
 
@@ -266,166 +344,193 @@ const Booking = () => {
     <>
       <Header highlight="Agendar" links={navLinks} />
       <main className="container">
-        <section className="booking-hero">
+        <section className="booking-hero" data-reveal>
           <div>
-            <h2>Agendamento</h2>
-            <p>Escolha o serviço, o dia e o melhor horário para você.</p>
+            <h2>Agendamento Inteligente</h2>
+            <p>
+              Escolha servico e profissional para ver um calendario com os dias e horarios realmente
+              disponiveis.
+            </p>
+          </div>
+          <div className="booking-badge">
+            <span className="api-status">
+              <span className={`status-dot ${availabilityLoading ? "is-pulsing" : ""}`}></span>
+              Disponibilidade em tempo real
+            </span>
+            <span className="api-base">Atualizacao com base em agendamentos aceitos e indisponibilidades.</span>
           </div>
         </section>
 
-        <section className="booking-page">
-          <div className="booking-steps">
-            <div className="step-card">
-              <span className="step-number">1</span>
-              <div>
-                <h3>Serviço e profissional</h3>
-                <p>Selecione o serviço e o profissional (opcional).</p>
-              </div>
+        <section className="booking-page booking-page-v2">
+          <div className="panel" data-reveal="delay-1">
+            <div className="panel-header">
+              <h3>{editingAppointment ? "Remarcar agendamento" : "Novo agendamento"}</h3>
+              <p className="muted">Fluxo orientado por disponibilidade real do barbeiro.</p>
             </div>
-            <div className="step-card">
-              <span className="step-number">2</span>
-              <div>
-                <h3>Horário</h3>
-                <p>Escolha o dia e o horário permitido.</p>
+
+            <form className="panel-form" onSubmit={handleSubmit}>
+              <div className="form-grid">
+                <div className="form-field">
+                  <label htmlFor="barber">Profissional</label>
+                  <select
+                    id="barber"
+                    value={selectedBarber}
+                    onChange={(event) => setSelectedBarber(event.target.value)}
+                    required
+                  >
+                    <option value="">Selecione um barbeiro</option>
+                    {barbers.map((barber) => (
+                      <option key={barber.username} value={barber.username}>
+                        {barber.name ? `${barber.name} (${barber.username})` : barber.username}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="service">Servico</label>
+                  <select
+                    id="service"
+                    value={selectedService}
+                    onChange={(event) => setSelectedService(event.target.value)}
+                    required
+                  >
+                    <option value="">Selecione um servico</option>
+                    {services.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name} - {formatCurrency(service.price)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
-            <div className="step-card">
-              <span className="step-number">3</span>
-              <div>
-                <h3>Confirmação</h3>
-                <p>Finalize e acompanhe seus agendamentos.</p>
+
+              <div className="booking-rules booking-rules--compact">
+                <h4>Regras aplicadas automaticamente</h4>
+                <ul>
+                  {rules.map((rule) => (
+                    <li key={rule}>{rule}</li>
+                  ))}
+                </ul>
               </div>
-            </div>
+
+              <div className="booking-calendar-block">
+                <div className="calendar-column">
+                  <div className="calendar-caption">
+                    <h4>Calendario de datas</h4>
+                    <p className="muted">Dias marcados em dourado possuem horarios disponiveis.</p>
+                  </div>
+                  <MonthCalendar
+                    monthDate={monthDate}
+                    onMonthChange={setMonthDate}
+                    selectedDate={selectedDate}
+                    onSelectDate={setSelectedDate}
+                    dayMeta={availabilityMap}
+                    minDate={todayIso}
+                  />
+                </div>
+
+                <div className="slots-column">
+                  <div className="calendar-caption">
+                    <h4>Horarios do dia</h4>
+                    <p className="muted">
+                      {selectedDate
+                        ? `Selecione um horario para ${formatDateBr(selectedDate)}.`
+                        : "Selecione uma data disponivel no calendario."}
+                    </p>
+                  </div>
+
+                  <div className="time-grid">
+                    {availableSlots.map((slot) => (
+                      <button
+                        key={slot}
+                        type="button"
+                        className={`time-slot ${selectedTime === slot ? "is-active" : ""}`}
+                        onClick={() => setSelectedTime(slot)}
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+
+                  {!availableSlots.length ? (
+                    <p className="muted">Sem horarios disponiveis para o dia selecionado.</p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="panel-summary">
+                <div className="summary-card">
+                  <span>Profissional</span>
+                  <strong>{selectedBarberData?.name || selectedBarber || "-"}</strong>
+                </div>
+                <div className="summary-card">
+                  <span>Servico</span>
+                  <strong>{selectedServiceData?.name || "-"}</strong>
+                </div>
+                <div className="summary-card">
+                  <span>Data e hora</span>
+                  <strong>{selectedDate && selectedTime ? `${formatDateBr(selectedDate)} ${selectedTime}` : "-"}</strong>
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button className="primary-action" type="submit" disabled={submitting || availabilityLoading}>
+                  {submitting
+                    ? "Salvando..."
+                    : editingAppointment
+                      ? "Confirmar remarcacao"
+                      : "Confirmar agendamento"}
+                </button>
+                {editingAppointment ? (
+                  <button type="button" className="ghost-action" onClick={resetBookingFlow}>
+                    Cancelar remarcacao
+                  </button>
+                ) : null}
+              </div>
+            </form>
+
+            <p className="form-note">{availabilityMessage}</p>
           </div>
 
-          <div className="booking-rules">
-            <h3>Regras de agendamento</h3>
-            <ul>
-              <li>Agendamentos precisam de pelo menos 15 minutos de antecedência.</li>
-              <li>Não ? permitido agendar para domingo.</li>
-              <li>Horários disponíveis: 09h às 12h e 13h às 20h.</li>
-              <li>Datas passadas não são permitidas.</li>
-            </ul>
-          </div>
-
-          <form className="booking-form" onSubmit={handleSubmit}>
-            <div className="form-grid">
-              <div className="form-field">
-                <label htmlFor="barbeiro">Profissional</label>
-                <select
-                  id="barbeiro"
-                  value={formState.barbeiroUsername}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, barbeiroUsername: event.target.value }))
-                  }
-                  disabled={Boolean(editingId)}
-                >
-                  <option value="">Sem preferencia</option>
-                  {barbers.map((barber) => (
-                    <option key={barber.username} value={barber.username}>
-                      {barber.name ? `${barber.name} (${barber.username})` : barber.username}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="Serviço">Serviço</label>
-                <select
-                  id="Serviço"
-                  value={formState.servicoId}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, servicoId: event.target.value }))
-                  }
-                  disabled={Boolean(editingId)}
-                  required
-                >
-                  <option value="">Selecione um serviço</option>
-                  {servicesOptions.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {service.name} • {formatCurrency(service.price)}
-                    </option>
-                  ))}
-                </select>
-                <span className="form-note">{serviceDuration}</span>
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="data">Data</label>
-                <input
-                  id="data"
-                  type="date"
-                  required
-                  value={formState.data}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, data: event.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="horario">Horário</label>
-                <input
-                  id="horario"
-                  type="time"
-                  required
-                  value={formState.hora}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, hora: event.target.value }))
-                  }
-                />
-                <span className="form-note">Selecione um horário disponível.</span>
-              </div>
+          <section className="panel" data-reveal="delay-2">
+            <div className="panel-header">
+              <h3>Meus agendamentos</h3>
+              <p className="muted">Gerencie seus horarios e acompanhe o status.</p>
             </div>
 
-            <div className="form-actions">
-              <button className="primary-action" type="submit" disabled={loading}>
-                {loading ? "Salvando..." : editingId ? "Salvar alterações" : "Confirmar agendamento"}
-              </button>
-              <button
-                className="ghost-action"
-                type="button"
-                hidden={!editingId}
-                onClick={resetForm}
-              >
-                Cancelar alteração
-              </button>
-              <p className="form-note">{note}</p>
-            </div>
-          </form>
-
-          <section className="appointments">
-            <div className="section-header">
-              <h2>Meus agendamentos</h2>
-              <p>Visualize, cancele ou remarque seus horários.</p>
-            </div>
-            {appointments.length === 0 ? (
-              <div className="appointments-empty">{appointmentsEmptyMessage}</div>
+            {!appointments.length ? (
+              <p className="appointments-empty">Voce ainda nao possui agendamentos.</p>
             ) : (
               <div className="appointments-list">
                 {appointments.map((appointment) => (
                   <article key={appointment.id} className="appointment-card">
                     <div className="appointment-meta">
-                      <h4>{serviceNameFor(appointment.serviceId)}</h4>
+                      <h4>{appointment.serviceName || "Servico"}</h4>
                       <span>
-                        {formatDateBr(appointment.date)} às {appointment.time}
+                        {formatDateBr(appointment.date)} as {formatTime(appointment.time)}
                       </span>
-                      <span>Profissional: {appointment.barbeiroUsername || "-"}</span>
-                      <span>Status: {appointment.status}</span>
+                      <span>Barbeiro: {appointment.barbeiroUsername || "-"}</span>
+                      <span className={`tag ${statusClass(appointment.status)}`}>{appointment.status}</span>
                     </div>
+
                     <div className="appointment-actions">
                       <button
                         type="button"
                         className="ghost-action"
-                        onClick={() => handleEdit(appointment)}
+                        onClick={() => handleReschedule(appointment)}
                       >
                         Remarcar
                       </button>
-                      {["REQUISITADO", "AGENDADO"].includes(appointment.status) ? (
+
+                      {[
+                        "REQUISITADO",
+                        "AGENDADO"
+                      ].includes(appointment.status) ? (
                         <button
                           type="button"
                           className="danger-action"
-                          onClick={() => handleCancel(appointment)}
+                          onClick={() => handleCancelAppointment(appointment.id)}
                         >
                           Cancelar
                         </button>
@@ -444,7 +549,3 @@ const Booking = () => {
 };
 
 export default Booking;
-
-
-
-
