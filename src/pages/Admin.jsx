@@ -580,8 +580,8 @@ const Admin = () => {
         variant: "success",
         message:
           updated?.nfceStatus === "EMITIDA"
-            ? "Nota fiscal emitida com sucesso."
-            : "Solicitacao de nota fiscal enviada."
+            ? "NFC-e emitida com sucesso."
+            : "Solicitacao de NFC-e enviada."
       });
     } catch (error) {
       toast({ variant: "error", message: getErrorMessage(error) });
@@ -1342,7 +1342,7 @@ const Admin = () => {
                       }))
                     }
                   />
-                  Solicitar nota fiscal
+                  Solicitar NFC-e (prepara integracao)
                 </label>
 
                 <div className="form-actions">
@@ -1444,7 +1444,7 @@ const Admin = () => {
                           <span className="tag">Saidas: {formatCurrency(item.totalSaidas)}</span>
                           <span className="tag">Saldo: {formatCurrency(item.saldoApurado)}</span>
                           <span className={`tag ${nfceStatusClass(item.nfceStatus)}`}>
-                            Nota: {nfceStatusLabels[item.nfceStatus] || item.nfceStatus || "-"}
+                            NFC-e: {nfceStatusLabels[item.nfceStatus] || item.nfceStatus || "-"}
                           </span>
                           {item.nfceChave ? <span className="tag">Chave: {item.nfceChave}</span> : null}
                         </div>
@@ -1474,7 +1474,7 @@ const Admin = () => {
                               disabled={cashClosingNfceLoadingId === item.id}
                               onClick={() => handleEmitCashClosingNfce(item)}
                             >
-                              {cashClosingNfceLoadingId === item.id ? "Emitindo..." : "Emitir nota"}
+                              {cashClosingNfceLoadingId === item.id ? "Emitindo..." : "Emitir NFC-e"}
                             </button>
                           </div>
                         ) : null}
