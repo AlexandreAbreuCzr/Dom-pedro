@@ -137,8 +137,7 @@ const Admin = () => {
     inicio: "",
     fim: "",
     saldoInformado: "",
-    observacao: "",
-    solicitarNfce: false
+    observacao: ""
   });
   const [cashClosingPreview, setCashClosingPreview] = useState(null);
   const [cashClosingHistory, setCashClosingHistory] = useState([]);
@@ -489,7 +488,6 @@ const Admin = () => {
 
     const observacao = cashClosingForm.observacao.trim();
     if (observacao) payload.observacao = observacao;
-    payload.solicitarNfce = Boolean(cashClosingForm.solicitarNfce);
 
     return payload;
   };
@@ -539,8 +537,7 @@ const Admin = () => {
       setCashClosingForm((prev) => ({
         ...prev,
         saldoInformado: "",
-        observacao: "",
-        solicitarNfce: false
+        observacao: ""
       }));
     } catch (error) {
       toast({ variant: "error", message: getErrorMessage(error) });
@@ -1289,20 +1286,6 @@ const Admin = () => {
                   </div>
                 </div>
 
-                <label className="inline-check">
-                  <input
-                    type="checkbox"
-                    checked={cashClosingForm.solicitarNfce}
-                    onChange={(event) =>
-                      setCashClosingForm((prev) => ({
-                        ...prev,
-                        solicitarNfce: event.target.checked
-                      }))
-                    }
-                  />
-                  Solicitar NFC-e (prepara integracao)
-                </label>
-
                 <div className="form-actions">
                   <button
                     className="ghost-action"
@@ -1372,9 +1355,6 @@ const Admin = () => {
                       <p className="muted">Sem lancamentos no periodo para detalhar por barbeiro.</p>
                     )}
 
-                    {cashClosingPreview.nfceInfo ? (
-                      <p className="muted">{cashClosingPreview.nfceInfo}</p>
-                    ) : null}
                   </div>
                 ) : null}
               </form>
@@ -1401,7 +1381,6 @@ const Admin = () => {
                           <span className="tag">Entradas: {formatCurrency(item.totalEntradas)}</span>
                           <span className="tag">Saidas: {formatCurrency(item.totalSaidas)}</span>
                           <span className="tag">Saldo: {formatCurrency(item.saldoApurado)}</span>
-                          <span className="tag">NFC-e: {item.nfceStatus || "-"}</span>
                         </div>
 
                         <div className="row-meta">
