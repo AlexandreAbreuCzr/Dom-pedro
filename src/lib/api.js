@@ -21,7 +21,6 @@ const defaultConfig = {
     cash: "/caixa",
     cashClosingPreview: "/caixa/fechamento/preview",
     cashClosing: "/caixa/fechamento",
-    cashClosingEmitNfce: (id) => `/caixa/fechamento/${id}/nfce`,
     reviews: "/avaliacao"
   },
   storageKeys: {
@@ -528,11 +527,6 @@ const getCashClosings = (filters = {}) => {
   });
 };
 
-const emitCashClosingNfce = (id) =>
-  apiRequest(config.endpoints.cashClosingEmitNfce(id), {
-    method: "POST"
-  });
-
 const getReviews = () =>
   apiRequest(config.endpoints.reviews, {
     method: "GET",
@@ -597,7 +591,6 @@ export {
   getCashClosingPreview,
   createCashClosing,
   getCashClosings,
-  emitCashClosingNfce,
   getReviews,
   createReview,
   getToken,

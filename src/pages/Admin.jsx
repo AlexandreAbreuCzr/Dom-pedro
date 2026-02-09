@@ -17,7 +17,6 @@ import {
   formatCurrency,
   formatDateBr,
   formatTime,
-  emitCashClosingNfce,
   getAppointments,
   getBarbers,
   getCash,
@@ -57,20 +56,6 @@ const cashClosingPeriodLabels = {
   SEMANAL: "Semanal",
   MENSAL: "Mensal",
   PERSONALIZADO: "Personalizado"
-};
-
-const nfceStatusLabels = {
-  NAO_SOLICITADA: "Nao solicitada",
-  PENDENTE_INTEGRACAO: "Pendente",
-  EMITIDA: "Emitida",
-  FALHA: "Falha"
-};
-
-const nfceStatusClass = (status) => {
-  if (status === "EMITIDA") return "tag--success";
-  if (status === "FALHA") return "tag--danger";
-  if (status === "PENDENTE_INTEGRACAO") return "tag--info";
-  return "";
 };
 
 const todayIso = () => calendarUtils.toIso(new Date());
@@ -159,7 +144,6 @@ const Admin = () => {
   const [cashClosingHistory, setCashClosingHistory] = useState([]);
   const [cashClosingHistoryEmpty, setCashClosingHistoryEmpty] = useState(false);
   const [cashClosingLoading, setCashClosingLoading] = useState(false);
-  const [cashClosingNfceLoadingId, setCashClosingNfceLoadingId] = useState(null);
 
   useEffect(() => {
     if (!token) {
@@ -562,32 +546,6 @@ const Admin = () => {
       toast({ variant: "error", message: getErrorMessage(error) });
     } finally {
       setCashClosingLoading(false);
-    }
-  };
-
-  const handleEmitCashClosingNfce = async (item) => {
-    if (!item?.id) return;
-
-    try {
-      setCashClosingNfceLoadingId(item.id);
-      const updated = await emitCashClosingNfce(item.id);
-
-      setCashClosingHistory((prev) =>
-        prev.map((entry) => (entry.id === item.id ? updated : entry))
-      );
-
-      toast({
-        variant: "success",
-        message:
-          updated?.nfceStatus === "EMITIDA"
-            ? "NFC-e emitida com sucesso."
-            : "Solicitacao de NFC-e enviada."
-      });
-    } catch (error) {
-      toast({ variant: "error", message: getErrorMessage(error) });
-      await loadCashClosings();
-    } finally {
-      setCashClosingNfceLoadingId(null);
     }
   };
 
@@ -1443,10 +1401,7 @@ const Admin = () => {
                           <span className="tag">Entradas: {formatCurrency(item.totalEntradas)}</span>
                           <span className="tag">Saidas: {formatCurrency(item.totalSaidas)}</span>
                           <span className="tag">Saldo: {formatCurrency(item.saldoApurado)}</span>
-                          <span className={`tag ${nfceStatusClass(item.nfceStatus)}`}>
-                            NFC-e: {nfceStatusLabels[item.nfceStatus] || item.nfceStatus || "-"}
-                          </span>
-                          {item.nfceChave ? <span className="tag">Chave: {item.nfceChave}</span> : null}
+                          <span className="tag">NFC-e: {item.nfceStatus || "-"}</span>
                         </div>
 
                         <div className="row-meta">
@@ -1464,20 +1419,6 @@ const Admin = () => {
                             </span>
                           ) : null}
                         </div>
-
-                        {item.solicitarNfce &&
-                        (item.nfceStatus === "PENDENTE_INTEGRACAO" || item.nfceStatus === "FALHA") ? (
-                          <div className="row-actions">
-                            <button
-                              className="ghost-action"
-                              type="button"
-                              disabled={cashClosingNfceLoadingId === item.id}
-                              onClick={() => handleEmitCashClosingNfce(item)}
-                            >
-                              {cashClosingNfceLoadingId === item.id ? "Emitindo..." : "Emitir NFC-e"}
-                            </button>
-                          </div>
-                        ) : null}
                       </article>
                     ))}
                   </div>
