@@ -6,42 +6,117 @@ const Roles = {
   USER: "USER"
 };
 
-const normalizeRole = (role) => String(role || "").trim().toUpperCase();
-
-const isOneOf = (role, ...allowed) => {
-  const normalized = normalizeRole(role);
-  return allowed.includes(normalized);
+const Permissions = {
+  DASHBOARD_VISUALIZAR: "DASHBOARD_VISUALIZAR",
+  USUARIOS_VISUALIZAR: "USUARIOS_VISUALIZAR",
+  USUARIOS_GERIR: "USUARIOS_GERIR",
+  USUARIOS_ALTERAR_ROLE: "USUARIOS_ALTERAR_ROLE",
+  USUARIOS_ALTERAR_PERMISSOES: "USUARIOS_ALTERAR_PERMISSOES",
+  AGENDA_GERIR: "AGENDA_GERIR",
+  SERVICOS_GERIR: "SERVICOS_GERIR",
+  INDISPONIBILIDADE_GERIR: "INDISPONIBILIDADE_GERIR",
+  COMISSOES_GERIR: "COMISSOES_GERIR",
+  CAIXA_GERIR: "CAIXA_GERIR"
 };
 
-const canAccessAdminPanel = (role) =>
-  isOneOf(role, Roles.ADMIN, Roles.GERENTE, Roles.RECEPCIONISTA);
+const allPermissions = Object.values(Permissions);
 
-const canManageUsers = (role) => isOneOf(role, Roles.ADMIN, Roles.GERENTE);
+const roleDefaults = {
+  [Roles.ADMIN]: allPermissions,
+  [Roles.GERENTE]: [
+    Permissions.DASHBOARD_VISUALIZAR,
+    Permissions.USUARIOS_VISUALIZAR,
+    Permissions.USUARIOS_GERIR,
+    Permissions.USUARIOS_ALTERAR_PERMISSOES,
+    Permissions.AGENDA_GERIR,
+    Permissions.SERVICOS_GERIR,
+    Permissions.INDISPONIBILIDADE_GERIR,
+    Permissions.COMISSOES_GERIR,
+    Permissions.CAIXA_GERIR
+  ],
+  [Roles.RECEPCIONISTA]: [Permissions.USUARIOS_VISUALIZAR, Permissions.AGENDA_GERIR],
+  [Roles.BARBEIRO]: [Permissions.AGENDA_GERIR],
+  [Roles.USER]: []
+};
 
-const canManageUserRoles = (role) => isOneOf(role, Roles.ADMIN);
+const normalizeRole = (role) => String(role || "").trim().toUpperCase();
 
-const canManageServices = (role) => isOneOf(role, Roles.ADMIN, Roles.GERENTE);
+const toPermissionList = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item || "").trim().toUpperCase())
+    .filter(Boolean)
+    .filter((item, index, array) => array.indexOf(item) === index);
+};
 
-const canManageSchedule = (role) =>
-  isOneOf(role, Roles.ADMIN, Roles.GERENTE, Roles.RECEPCIONISTA);
+const resolveRole = (context) => {
+  if (typeof context === "string") return normalizeRole(context);
+  if (context && typeof context === "object") return normalizeRole(context.role);
+  return "";
+};
 
-const canManageIndisponibilidade = (role) =>
-  isOneOf(role, Roles.ADMIN, Roles.GERENTE);
+const resolvePermissionSet = (context) => {
+  const role = resolveRole(context);
+  const explicitList =
+    context && typeof context === "object"
+      ? toPermissionList(context.permissoes || context.permissions || [])
+      : [];
 
-const canManageCommissions = (role) => isOneOf(role, Roles.ADMIN, Roles.GERENTE);
+  const source = explicitList.length ? explicitList : roleDefaults[role] || [];
+  return new Set(source);
+};
 
-const canManageCash = (role) => isOneOf(role, Roles.ADMIN, Roles.GERENTE);
+const getRoleDefaultPermissions = (context) => {
+  const role = resolveRole(context);
+  return [...(roleDefaults[role] || [])];
+};
 
-const canViewBusinessDashboard = (role) => isOneOf(role, Roles.ADMIN, Roles.GERENTE);
+const hasPermission = (context, permission) =>
+  resolvePermissionSet(context).has(String(permission || "").toUpperCase());
 
-const canAccessBarberPanel = (role) => isOneOf(role, Roles.ADMIN, Roles.BARBEIRO);
+const isOneOf = (context, ...allowed) => {
+  const role = resolveRole(context);
+  return allowed.map(normalizeRole).includes(role);
+};
+
+const canAccessAdminPanel = (context) =>
+  isOneOf(context, Roles.ADMIN, Roles.GERENTE, Roles.RECEPCIONISTA);
+
+const canManageUsers = (context) => hasPermission(context, Permissions.USUARIOS_GERIR);
+
+const canManageUserRoles = (context) => hasPermission(context, Permissions.USUARIOS_ALTERAR_ROLE);
+
+const canManageUserPermissions = (context) =>
+  hasPermission(context, Permissions.USUARIOS_ALTERAR_PERMISSOES);
+
+const canManageServices = (context) => hasPermission(context, Permissions.SERVICOS_GERIR);
+
+const canManageSchedule = (context) => hasPermission(context, Permissions.AGENDA_GERIR);
+
+const canManageIndisponibilidade = (context) =>
+  hasPermission(context, Permissions.INDISPONIBILIDADE_GERIR);
+
+const canManageCommissions = (context) => hasPermission(context, Permissions.COMISSOES_GERIR);
+
+const canManageCash = (context) => hasPermission(context, Permissions.CAIXA_GERIR);
+
+const canViewBusinessDashboard = (context) =>
+  hasPermission(context, Permissions.DASHBOARD_VISUALIZAR);
+
+const canAccessBarberPanel = (context) => isOneOf(context, Roles.ADMIN, Roles.BARBEIRO);
 
 export {
   Roles,
+  Permissions,
+  allPermissions,
   normalizeRole,
+  getRoleDefaultPermissions,
+  resolvePermissionSet,
+  hasPermission,
   canAccessAdminPanel,
   canManageUsers,
   canManageUserRoles,
+  canManageUserPermissions,
   canManageServices,
   canManageSchedule,
   canManageIndisponibilidade,

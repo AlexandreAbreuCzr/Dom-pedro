@@ -261,6 +261,29 @@
   accent-color: var(--primary);
 }
 
+.permissions-grid {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.permissions-group {
+  display: grid;
+  gap: 8px;
+}
+
+.permissions-group strong {
+  color: var(--primary);
+  font-size: 0.88rem;
+}
+
+.permissions-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
 .panel-form {
   display: grid;
   gap: 16px;

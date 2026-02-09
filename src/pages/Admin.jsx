@@ -36,10 +36,12 @@ import {
   updateCommissionRate,
   updateService,
   updateServiceImage,
+  updateUserPermissions,
   updateUserRole,
   updateUserStatus
 } from "../lib/api.js";
 import {
+  Permissions,
   Roles,
   canAccessAdminPanel,
   canManageCash,
@@ -47,10 +49,13 @@ import {
   canManageIndisponibilidade,
   canManageSchedule,
   canManageServices,
+  canManageUserPermissions,
   canManageUserRoles,
   canManageUsers,
   canViewBusinessDashboard,
-  normalizeRole
+  getRoleDefaultPermissions,
+  normalizeRole,
+  resolvePermissionSet
 } from "../lib/permissions.js";
 
 const toMonthRange = (monthDate) => ({
@@ -99,6 +104,34 @@ const roleLabels = {
 };
 
 const formatRoleLabel = (role) => roleLabels[normalizeRole(role)] || role || "-";
+
+const permissionGroups = [
+  {
+    title: "Pessoas",
+    items: [
+      { key: Permissions.USUARIOS_VISUALIZAR, label: "Visualizar usuarios" },
+      { key: Permissions.USUARIOS_GERIR, label: "Gerir usuarios" },
+      { key: Permissions.USUARIOS_ALTERAR_ROLE, label: "Alterar cargos" },
+      { key: Permissions.USUARIOS_ALTERAR_PERMISSOES, label: "Alterar acessos" }
+    ]
+  },
+  {
+    title: "Agenda e Cadastros",
+    items: [
+      { key: Permissions.AGENDA_GERIR, label: "Agenda / agendamentos" },
+      { key: Permissions.SERVICOS_GERIR, label: "Servicos" },
+      { key: Permissions.INDISPONIBILIDADE_GERIR, label: "Bloqueios / indisponibilidade" }
+    ]
+  },
+  {
+    title: "Financeiro",
+    items: [
+      { key: Permissions.DASHBOARD_VISUALIZAR, label: "Dashboard" },
+      { key: Permissions.COMISSOES_GERIR, label: "Comissoes" },
+      { key: Permissions.CAIXA_GERIR, label: "Caixa / fechamentos" }
+    ]
+  }
+];
 
 const Admin = () => {
   const { token, user, refreshUser } = useAuth();
@@ -173,15 +206,17 @@ const Admin = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
 
-  const activeRole = normalizeRole(activeUser?.role || user?.role);
-  const allowUsers = canManageUsers(activeRole);
-  const allowUserRoleChange = canManageUserRoles(activeRole);
-  const allowServices = canManageServices(activeRole);
-  const allowSchedule = canManageSchedule(activeRole);
-  const allowIndisponibilidade = canManageIndisponibilidade(activeRole);
-  const allowCommissions = canManageCommissions(activeRole);
-  const allowCash = canManageCash(activeRole);
-  const allowDashboard = canViewBusinessDashboard(activeRole);
+  const permissionContext = activeUser || user || null;
+  const activeRole = normalizeRole(permissionContext?.role);
+  const allowUsers = canManageUsers(permissionContext);
+  const allowUserRoleChange = canManageUserRoles(permissionContext);
+  const allowUserPermissionChange = canManageUserPermissions(permissionContext);
+  const allowServices = canManageServices(permissionContext);
+  const allowSchedule = canManageSchedule(permissionContext);
+  const allowIndisponibilidade = canManageIndisponibilidade(permissionContext);
+  const allowCommissions = canManageCommissions(permissionContext);
+  const allowCash = canManageCash(permissionContext);
+  const allowDashboard = canViewBusinessDashboard(permissionContext);
 
   useEffect(() => {
     if (!token) {
@@ -369,6 +404,23 @@ const Admin = () => {
       toast({ variant: "error", message: getErrorMessage(error) });
     } finally {
       setDashboardLoading(false);
+    }
+  };
+
+  const getUserPermissionArray = (userItem) =>
+    Array.from(resolvePermissionSet(userItem)).sort((left, right) => left.localeCompare(right));
+
+  const handleUserPermissionToggle = async (userItem, permissionKey, checked) => {
+    const current = new Set(getUserPermissionArray(userItem));
+    if (checked) current.add(permissionKey);
+    else current.delete(permissionKey);
+
+    try {
+      await updateUserPermissions(userItem.username, Array.from(current));
+      toast({ variant: "success", message: "Permissoes atualizadas." });
+      loadUsers();
+    } catch (error) {
+      toast({ variant: "error", message: getErrorMessage(error) });
     }
   };
 
@@ -971,60 +1023,103 @@ const Admin = () => {
               <p className="muted">Nenhum usuario encontrado.</p>
             ) : (
               <div className="panel-list">
-                {users.map((userItem) => (
-                  <article key={userItem.username} className="row-card">
-                    <div className="row-main">
-                      <strong>{userItem.name}</strong>
-                      <span>@{userItem.username}</span>
-                      <span>{userItem.email}</span>
-                    </div>
-                    <div className="row-meta">
-                      <span className="tag">{formatRoleLabel(userItem.role)}</span>
-                      <span className={`tag ${userItem.status ? "tag--success" : "tag--danger"}`}>
-                        {userItem.status ? "Ativo" : "Inativo"}
-                      </span>
-                    </div>
-                    <div className="row-actions">
-                      {allowUserRoleChange ? (
-                        <select
-                          value={userItem.role}
-                          onChange={async (event) => {
+                {users.map((userItem) => {
+                  const userPermissions = getUserPermissionArray(userItem);
+                  const roleDefaults = new Set(getRoleDefaultPermissions(userItem.role));
+                  const editablePermissions =
+                    allowUserPermissionChange && normalizeRole(userItem.role) !== Roles.ADMIN;
+
+                  return (
+                    <article key={userItem.username} className="row-card">
+                      <div className="row-main">
+                        <strong>{userItem.name}</strong>
+                        <span>@{userItem.username}</span>
+                        <span>{userItem.email}</span>
+                      </div>
+
+                      <div className="row-meta">
+                        <span className="tag">{formatRoleLabel(userItem.role)}</span>
+                        <span className={`tag ${userItem.status ? "tag--success" : "tag--danger"}`}>
+                          {userItem.status ? "Ativo" : "Inativo"}
+                        </span>
+                        <span className="tag">Acessos: {userPermissions.length}</span>
+                      </div>
+
+                      <div className="row-actions">
+                        {allowUserRoleChange ? (
+                          <select
+                            value={userItem.role}
+                            onChange={async (event) => {
+                              try {
+                                await updateUserRole(userItem.username, event.target.value);
+                                toast({ variant: "success", message: "Role atualizada." });
+                                loadUsers();
+                              } catch (error) {
+                                toast({ variant: "error", message: getErrorMessage(error) });
+                              }
+                            }}
+                          >
+                            <option value="ADMIN">ADMIN</option>
+                            <option value="GERENTE">GERENTE</option>
+                            <option value="RECEPCIONISTA">RECEPCIONISTA</option>
+                            <option value="BARBEIRO">BARBEIRO</option>
+                            <option value="USER">USER</option>
+                          </select>
+                        ) : (
+                          <span className="tag">{formatRoleLabel(userItem.role)}</span>
+                        )}
+
+                        <button
+                          type="button"
+                          className="ghost-action"
+                          onClick={async () => {
                             try {
-                              await updateUserRole(userItem.username, event.target.value);
-                              toast({ variant: "success", message: "Role atualizada." });
+                              await updateUserStatus(userItem.username, !userItem.status);
                               loadUsers();
                             } catch (error) {
                               toast({ variant: "error", message: getErrorMessage(error) });
                             }
                           }}
                         >
-                          <option value="ADMIN">ADMIN</option>
-                          <option value="GERENTE">GERENTE</option>
-                          <option value="RECEPCIONISTA">RECEPCIONISTA</option>
-                          <option value="BARBEIRO">BARBEIRO</option>
-                          <option value="USER">USER</option>
-                        </select>
-                      ) : (
-                        <span className="tag">{formatRoleLabel(userItem.role)}</span>
-                      )}
+                          {userItem.status ? "Desativar" : "Ativar"}
+                        </button>
+                      </div>
 
-                      <button
-                        type="button"
-                        className="ghost-action"
-                        onClick={async () => {
-                          try {
-                            await updateUserStatus(userItem.username, !userItem.status);
-                            loadUsers();
-                          } catch (error) {
-                            toast({ variant: "error", message: getErrorMessage(error) });
-                          }
-                        }}
-                      >
-                        {userItem.status ? "Desativar" : "Ativar"}
-                      </button>
-                    </div>
-                  </article>
-                ))}
+                      {editablePermissions ? (
+                        <div className="permissions-grid">
+                          {permissionGroups.map((group) => (
+                            <div key={`${userItem.username}-${group.title}`} className="permissions-group">
+                              <strong>{group.title}</strong>
+                              <div className="permissions-checks">
+                                {group.items.map((permission) => {
+                                  const checked = userPermissions.includes(permission.key);
+                                  const isRequiredByRole = roleDefaults.has(permission.key);
+                                  return (
+                                    <label key={`${userItem.username}-${permission.key}`} className="inline-check">
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        disabled={isRequiredByRole}
+                                        onChange={(event) =>
+                                          handleUserPermissionToggle(
+                                            userItem,
+                                            permission.key,
+                                            event.target.checked
+                                          )
+                                        }
+                                      />
+                                      {permission.label}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
               </div>
             )}
             {usersEmpty ? <p className="muted">Sem resultados para os filtros.</p> : null}

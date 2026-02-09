@@ -50,6 +50,7 @@ const defaultConfig = {
     appointmentUpdate: ({ data, hora }) => ({ data, hora }),
     userStatus: ({ status }) => ({ status }),
     userRole: ({ role }) => ({ role }),
+    userPermissions: ({ permissoes }) => ({ permissoes }),
     serviceCreate: ({ name, price, duracaoEmMinutos }) => ({
       name,
       price,
@@ -419,6 +420,12 @@ const updateUserRole = (username, role) =>
     body: JSON.stringify(config.payloads.userRole({ role }))
   });
 
+const updateUserPermissions = (username, permissoes) =>
+  apiRequest(`${config.endpoints.usersAdmin}/${username}/permissoes`, {
+    method: "PATCH",
+    body: JSON.stringify(config.payloads.userPermissions({ permissoes }))
+  });
+
 const createService = (payload) =>
   apiRequest(config.endpoints.services, {
     method: "POST",
@@ -575,6 +582,7 @@ export {
   getUsersAdmin,
   updateUserStatus,
   updateUserRole,
+  updateUserPermissions,
   createService,
   updateService,
   createServiceWithImage,
