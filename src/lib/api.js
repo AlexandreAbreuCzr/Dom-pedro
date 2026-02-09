@@ -19,6 +19,8 @@ const defaultConfig = {
     indisponibilidade: "/indisponibilidade",
     commissions: "/comissao",
     cash: "/caixa",
+    cashClosingPreview: "/caixa/fechamento/preview",
+    cashClosing: "/caixa/fechamento",
     reviews: "/avaliacao"
   },
   storageKeys: {
@@ -503,6 +505,28 @@ const createCashEntry = (payload) =>
     body: JSON.stringify(payload)
   });
 
+const getCashClosingPreview = (filters = {}) => {
+  const params = new URLSearchParams(filters);
+  const query = params.toString();
+  return apiRequest(`${config.endpoints.cashClosingPreview}${query ? `?${query}` : ""}`, {
+    method: "GET"
+  });
+};
+
+const createCashClosing = (payload) =>
+  apiRequest(config.endpoints.cashClosing, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+
+const getCashClosings = (filters = {}) => {
+  const params = new URLSearchParams(filters);
+  const query = params.toString();
+  return apiRequest(`${config.endpoints.cashClosing}${query ? `?${query}` : ""}`, {
+    method: "GET"
+  });
+};
+
 const getReviews = () =>
   apiRequest(config.endpoints.reviews, {
     method: "GET",
@@ -564,6 +588,9 @@ export {
   updateCommissionRate,
   getCash,
   createCashEntry,
+  getCashClosingPreview,
+  createCashClosing,
+  getCashClosings,
   getReviews,
   createReview,
   getToken,

@@ -1033,6 +1033,46 @@
   color: var(--text);
 }
 
+.cash-closing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cash-closing-form,
+.cash-closing-history {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.cash-closing-form h4,
+.cash-closing-history h4 {
+  font-size: 1.02rem;
+  color: var(--primary);
+}
+
+.cash-closing-preview {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.cash-closing-history .panel-list {
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cash-closing-history .row-card {
+  padding: 14px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-reveal] {
     opacity: 1;
@@ -1338,6 +1378,10 @@
   .calendar-two-columns {
     grid-template-columns: 1fr;
   }
+
+  .cash-closing-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -1444,5 +1488,15 @@
   .appointment-actions .danger-action {
     width: 100%;
     padding: 10px 12px;
+  }
+
+  .cash-closing-form,
+  .cash-closing-history {
+    padding: 12px;
+  }
+
+  .cash-closing-history .panel-list {
+    max-height: none;
+    overflow: visible;
   }
 }

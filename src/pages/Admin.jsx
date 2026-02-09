@@ -8,6 +8,7 @@ import { useToast } from "../components/ToastProvider.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import {
   createCashEntry,
+  createCashClosing,
   createService,
   createServiceWithImage,
   createIndisponibilidade,
@@ -19,6 +20,8 @@ import {
   getAppointments,
   getBarbers,
   getCash,
+  getCashClosingPreview,
+  getCashClosings,
   getCommissionRate,
   getCommissions,
   getErrorMessage,
@@ -46,6 +49,31 @@ const statusClass = (status) => {
   if (status === "CONCLUIDO") return "tag--info";
   if (status === "CANCELADO") return "tag--danger";
   return "";
+};
+
+const cashClosingPeriodLabels = {
+  DIARIO: "Diario",
+  SEMANAL: "Semanal",
+  MENSAL: "Mensal",
+  PERSONALIZADO: "Personalizado"
+};
+
+const todayIso = () => calendarUtils.toIso(new Date());
+
+const parseDecimalInput = (value) => {
+  if (value == null) return null;
+  const normalized = String(value).trim().replace(",", ".");
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const formatDateTimeBr = (value) => {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  });
 };
 
 const Admin = () => {
@@ -103,6 +131,19 @@ const Admin = () => {
     valor: "",
     barbeiroUsername: ""
   });
+  const [cashClosingForm, setCashClosingForm] = useState({
+    periodo: "DIARIO",
+    referencia: todayIso(),
+    inicio: "",
+    fim: "",
+    saldoInformado: "",
+    observacao: "",
+    solicitarNfce: false
+  });
+  const [cashClosingPreview, setCashClosingPreview] = useState(null);
+  const [cashClosingHistory, setCashClosingHistory] = useState([]);
+  const [cashClosingHistoryEmpty, setCashClosingHistoryEmpty] = useState(false);
+  const [cashClosingLoading, setCashClosingLoading] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -260,6 +301,21 @@ const Admin = () => {
     }
   };
 
+  const loadCashClosings = async () => {
+    try {
+      const filters = {};
+      if (cashFilters.inicio) filters.inicio = cashFilters.inicio;
+      if (cashFilters.fim) filters.fim = cashFilters.fim;
+      const items = await getCashClosings(filters);
+      setCashClosingHistory(items || []);
+      setCashClosingHistoryEmpty(!(items && items.length));
+    } catch (error) {
+      setCashClosingHistory([]);
+      setCashClosingHistoryEmpty(true);
+      toast({ variant: "error", message: getErrorMessage(error) });
+    }
+  };
+
   useEffect(() => {
     if (!ready) return;
 
@@ -269,6 +325,7 @@ const Admin = () => {
       loadCommissions();
       loadCommissionRate();
       loadCash();
+      loadCashClosings();
 
       const loadedBarbers = await loadBarbers();
       const defaultBarber = indForm.barbeiroUsername || loadedBarbers[0]?.username;
@@ -404,10 +461,98 @@ const Admin = () => {
     }
   };
 
+  const buildCashClosingPayload = () => {
+    const payload = {
+      periodo: cashClosingForm.periodo
+    };
+
+    if (cashClosingForm.periodo === "PERSONALIZADO") {
+      if (!cashClosingForm.inicio || !cashClosingForm.fim) {
+        toast({
+          variant: "warning",
+          message: "Para fechamento personalizado, informe inicio e fim."
+        });
+        return null;
+      }
+      payload.inicio = cashClosingForm.inicio;
+      payload.fim = cashClosingForm.fim;
+    } else {
+      payload.referencia = cashClosingForm.referencia || todayIso();
+    }
+
+    const saldoInformado = parseDecimalInput(cashClosingForm.saldoInformado);
+    if (Number.isNaN(saldoInformado)) {
+      toast({ variant: "warning", message: "Saldo informado invalido." });
+      return null;
+    }
+    if (saldoInformado != null) payload.saldoInformado = saldoInformado;
+
+    const observacao = cashClosingForm.observacao.trim();
+    if (observacao) payload.observacao = observacao;
+    payload.solicitarNfce = Boolean(cashClosingForm.solicitarNfce);
+
+    return payload;
+  };
+
+  const handleCashClosingPreview = async () => {
+    const payload = buildCashClosingPayload();
+    if (!payload) return;
+    const previewFilters = {
+      periodo: payload.periodo
+    };
+    if (payload.referencia) previewFilters.referencia = payload.referencia;
+    if (payload.inicio) previewFilters.inicio = payload.inicio;
+    if (payload.fim) previewFilters.fim = payload.fim;
+
+    try {
+      setCashClosingLoading(true);
+      const preview = await getCashClosingPreview(previewFilters);
+      setCashClosingPreview(preview || null);
+    } catch (error) {
+      setCashClosingPreview(null);
+      toast({ variant: "error", message: getErrorMessage(error) });
+    } finally {
+      setCashClosingLoading(false);
+    }
+  };
+
+  const handleCashClosingSubmit = async (event) => {
+    event.preventDefault();
+
+    const payload = buildCashClosingPayload();
+    if (!payload) return;
+    const previewFilters = {
+      periodo: payload.periodo
+    };
+    if (payload.referencia) previewFilters.referencia = payload.referencia;
+    if (payload.inicio) previewFilters.inicio = payload.inicio;
+    if (payload.fim) previewFilters.fim = payload.fim;
+
+    try {
+      setCashClosingLoading(true);
+      await createCashClosing(payload);
+      toast({ variant: "success", message: "Fechamento de caixa registrado." });
+
+      await Promise.all([loadCash(), loadCashClosings()]);
+      const preview = await getCashClosingPreview(previewFilters);
+      setCashClosingPreview(preview || null);
+      setCashClosingForm((prev) => ({
+        ...prev,
+        saldoInformado: "",
+        observacao: "",
+        solicitarNfce: false
+      }));
+    } catch (error) {
+      toast({ variant: "error", message: getErrorMessage(error) });
+    } finally {
+      setCashClosingLoading(false);
+    }
+  };
+
   const handleCashSubmit = async (event) => {
     event.preventDefault();
 
-    const valor = Number(String(cashForm.valor).replace(",", "."));
+    const valor = parseDecimalInput(cashForm.valor);
     if (!cashForm.tipo || !cashForm.descricao.trim() || !valor) {
       toast({ variant: "warning", message: "Preencha tipo, descricao e valor." });
       return;
@@ -480,6 +625,12 @@ const Admin = () => {
     { entrada: 0, saida: 0 }
   );
   const saldo = cashSummary.entrada - cashSummary.saida;
+  const isCustomClosingPeriod = cashClosingForm.periodo === "PERSONALIZADO";
+
+  const handleCashFilter = () => {
+    loadCash();
+    loadCashClosings();
+  };
 
   const navLinks = [
     { label: "Servicos", href: "/#services" },
@@ -1024,13 +1175,260 @@ const Admin = () => {
                 <option value="ENTRADA">Entrada</option>
                 <option value="SAIDA">Saida</option>
               </select>
-              <button className="ghost-action" type="button" onClick={loadCash}>
+              <button className="ghost-action" type="button" onClick={handleCashFilter}>
                 Filtrar
               </button>
             </div>
           </div>
 
           <div className="panel-body">
+            <div className="cash-closing-grid">
+              <form className="panel-form cash-closing-form" onSubmit={handleCashClosingSubmit}>
+                <h4>Fechamento de caixa</h4>
+                <div className="form-grid">
+                  <div className="form-field">
+                    <label htmlFor="closing-periodo">Periodo</label>
+                    <select
+                      id="closing-periodo"
+                      value={cashClosingForm.periodo}
+                      onChange={(event) =>
+                        setCashClosingForm((prev) => ({
+                          ...prev,
+                          periodo: event.target.value
+                        }))
+                      }
+                    >
+                      <option value="DIARIO">Diario</option>
+                      <option value="SEMANAL">Semanal</option>
+                      <option value="MENSAL">Mensal</option>
+                      <option value="PERSONALIZADO">Personalizado</option>
+                    </select>
+                  </div>
+
+                  {!isCustomClosingPeriod ? (
+                    <div className="form-field">
+                      <label htmlFor="closing-referencia">Data de referencia</label>
+                      <input
+                        id="closing-referencia"
+                        type="date"
+                        value={cashClosingForm.referencia}
+                        onChange={(event) =>
+                          setCashClosingForm((prev) => ({
+                            ...prev,
+                            referencia: event.target.value
+                          }))
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="form-field">
+                        <label htmlFor="closing-inicio">Inicio</label>
+                        <input
+                          id="closing-inicio"
+                          type="date"
+                          value={cashClosingForm.inicio}
+                          onChange={(event) =>
+                            setCashClosingForm((prev) => ({
+                              ...prev,
+                              inicio: event.target.value
+                            }))
+                          }
+                          required={isCustomClosingPeriod}
+                        />
+                      </div>
+
+                      <div className="form-field">
+                        <label htmlFor="closing-fim">Fim</label>
+                        <input
+                          id="closing-fim"
+                          type="date"
+                          value={cashClosingForm.fim}
+                          onChange={(event) =>
+                            setCashClosingForm((prev) => ({
+                              ...prev,
+                              fim: event.target.value
+                            }))
+                          }
+                          required={isCustomClosingPeriod}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="form-field">
+                    <label htmlFor="closing-saldo">Saldo contado (opcional)</label>
+                    <input
+                      id="closing-saldo"
+                      type="text"
+                      placeholder="1500.00"
+                      value={cashClosingForm.saldoInformado}
+                      onChange={(event) =>
+                        setCashClosingForm((prev) => ({
+                          ...prev,
+                          saldoInformado: event.target.value
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="form-field">
+                    <label htmlFor="closing-observacao">Observacao</label>
+                    <textarea
+                      id="closing-observacao"
+                      rows={2}
+                      placeholder="Resumo do turno, sangria, divergencias..."
+                      value={cashClosingForm.observacao}
+                      onChange={(event) =>
+                        setCashClosingForm((prev) => ({
+                          ...prev,
+                          observacao: event.target.value
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <label className="inline-check">
+                  <input
+                    type="checkbox"
+                    checked={cashClosingForm.solicitarNfce}
+                    onChange={(event) =>
+                      setCashClosingForm((prev) => ({
+                        ...prev,
+                        solicitarNfce: event.target.checked
+                      }))
+                    }
+                  />
+                  Solicitar NFC-e (prepara integracao)
+                </label>
+
+                <div className="form-actions">
+                  <button
+                    className="ghost-action"
+                    type="button"
+                    onClick={handleCashClosingPreview}
+                    disabled={cashClosingLoading}
+                  >
+                    Previsualizar
+                  </button>
+                  <button className="primary-action" type="submit" disabled={cashClosingLoading}>
+                    Fechar periodo
+                  </button>
+                </div>
+
+                {cashClosingPreview?.resumo ? (
+                  <div className="cash-closing-preview">
+                    <div className="row-main">
+                      <strong>
+                        Preview {cashClosingPeriodLabels[cashClosingPreview.periodo] || cashClosingPreview.periodo}
+                      </strong>
+                      <span>
+                        {formatDateTimeBr(cashClosingPreview.resumo.dataInicio)} ate{" "}
+                        {formatDateTimeBr(cashClosingPreview.resumo.dataFim)}
+                      </span>
+                    </div>
+
+                    <div className="panel-summary">
+                      <div className="summary-card">
+                        <span>Entradas</span>
+                        <strong>{formatCurrency(cashClosingPreview.resumo.totalEntradas)}</strong>
+                      </div>
+                      <div className="summary-card">
+                        <span>Saidas</span>
+                        <strong>{formatCurrency(cashClosingPreview.resumo.totalSaidas)}</strong>
+                      </div>
+                      <div className="summary-card">
+                        <span>Saldo apurado</span>
+                        <strong>{formatCurrency(cashClosingPreview.resumo.saldoApurado)}</strong>
+                      </div>
+                      <div className="summary-card">
+                        <span>Lancamentos</span>
+                        <strong>{cashClosingPreview.resumo.totalLancamentos || 0}</strong>
+                      </div>
+                    </div>
+
+                    {cashClosingPreview.resumo.porBarbeiro?.length ? (
+                      <div className="panel-list">
+                        {cashClosingPreview.resumo.porBarbeiro.map((barbeiro) => (
+                          <article key={barbeiro.barbeiroUsername} className="row-card">
+                            <div className="row-main">
+                              <strong>
+                                {barbeiro.barbeiroUsername === "sem_barbeiro"
+                                  ? "Sem barbeiro"
+                                  : `@${barbeiro.barbeiroUsername}`}
+                              </strong>
+                              <span>Lancamentos: {barbeiro.totalLancamentos || 0}</span>
+                            </div>
+                            <div className="row-meta">
+                              <span className="tag">Entrada: {formatCurrency(barbeiro.entradas)}</span>
+                              <span className="tag">Saida: {formatCurrency(barbeiro.saidas)}</span>
+                              <span className="tag">Saldo: {formatCurrency(barbeiro.saldo)}</span>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="muted">Sem lancamentos no periodo para detalhar por barbeiro.</p>
+                    )}
+
+                    {cashClosingPreview.nfceInfo ? (
+                      <p className="muted">{cashClosingPreview.nfceInfo}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </form>
+
+              <div className="cash-closing-history">
+                <h4>Historico de fechamentos</h4>
+                {!cashClosingHistory.length ? (
+                  <p className="muted">Nenhum fechamento registrado.</p>
+                ) : (
+                  <div className="panel-list">
+                    {cashClosingHistory.map((item) => (
+                      <article key={item.id} className="row-card">
+                        <div className="row-main">
+                          <strong>
+                            {cashClosingPeriodLabels[item.periodo] || item.periodo}
+                          </strong>
+                          <span>
+                            {formatDateTimeBr(item.dataInicio)} ate {formatDateTimeBr(item.dataFim)}
+                          </span>
+                          <span>Fechado por: {item.fechadoPorUsername ? `@${item.fechadoPorUsername}` : "-"}</span>
+                        </div>
+
+                        <div className="row-meta">
+                          <span className="tag">Entradas: {formatCurrency(item.totalEntradas)}</span>
+                          <span className="tag">Saidas: {formatCurrency(item.totalSaidas)}</span>
+                          <span className="tag">Saldo: {formatCurrency(item.saldoApurado)}</span>
+                          <span className="tag">NFC-e: {item.nfceStatus || "-"}</span>
+                        </div>
+
+                        <div className="row-meta">
+                          <span className="tag">
+                            Criado em: {formatDateTimeBr(item.dataDeCriacao)}
+                          </span>
+                          {item.saldoInformado != null ? (
+                            <span className="tag">
+                              Contado: {formatCurrency(item.saldoInformado)}
+                            </span>
+                          ) : null}
+                          {item.diferenca != null ? (
+                            <span className={`tag ${Number(item.diferenca) === 0 ? "tag--success" : "tag--danger"}`}>
+                              Diferenca: {formatCurrency(item.diferenca)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+                {cashClosingHistoryEmpty ? (
+                  <p className="muted">Falha ao carregar historico de fechamentos.</p>
+                ) : null}
+              </div>
+            </div>
+
             <form className="panel-form" onSubmit={handleCashSubmit}>
               <div className="form-grid">
                 <div className="form-field">
