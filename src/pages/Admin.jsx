@@ -20,6 +20,7 @@ import {
   getAppointments,
   getBarbers,
   getCash,
+  getDashboardOverview,
   getCashClosingPreview,
   getCashClosings,
   getCommissionRate,
@@ -38,6 +39,19 @@ import {
   updateUserRole,
   updateUserStatus
 } from "../lib/api.js";
+import {
+  Roles,
+  canAccessAdminPanel,
+  canManageCash,
+  canManageCommissions,
+  canManageIndisponibilidade,
+  canManageSchedule,
+  canManageServices,
+  canManageUserRoles,
+  canManageUsers,
+  canViewBusinessDashboard,
+  normalizeRole
+} from "../lib/permissions.js";
 
 const toMonthRange = (monthDate) => ({
   startDate: calendarUtils.toIso(calendarUtils.startOfMonth(monthDate)),
@@ -76,12 +90,23 @@ const formatDateTimeBr = (value) => {
   });
 };
 
+const roleLabels = {
+  ADMIN: "Administrador",
+  GERENTE: "Gerente",
+  RECEPCIONISTA: "Recepcionista",
+  BARBEIRO: "Barbeiro",
+  USER: "Cliente"
+};
+
+const formatRoleLabel = (role) => roleLabels[normalizeRole(role)] || role || "-";
+
 const Admin = () => {
   const { token, user, refreshUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const [ready, setReady] = useState(false);
+  const [activeUser, setActiveUser] = useState(null);
 
   const [users, setUsers] = useState([]);
   const [usersEmpty, setUsersEmpty] = useState(false);
@@ -144,6 +169,20 @@ const Admin = () => {
   const [cashClosingHistoryEmpty, setCashClosingHistoryEmpty] = useState(false);
   const [cashClosingLoading, setCashClosingLoading] = useState(false);
 
+  const [dashboardFilters, setDashboardFilters] = useState({ inicio: "", fim: "" });
+  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+
+  const activeRole = normalizeRole(activeUser?.role || user?.role);
+  const allowUsers = canManageUsers(activeRole);
+  const allowUserRoleChange = canManageUserRoles(activeRole);
+  const allowServices = canManageServices(activeRole);
+  const allowSchedule = canManageSchedule(activeRole);
+  const allowIndisponibilidade = canManageIndisponibilidade(activeRole);
+  const allowCommissions = canManageCommissions(activeRole);
+  const allowCash = canManageCash(activeRole);
+  const allowDashboard = canViewBusinessDashboard(activeRole);
+
   useEffect(() => {
     if (!token) {
       navigate("/login?redirect=/admin");
@@ -152,15 +191,16 @@ const Admin = () => {
 
     const bootstrap = async () => {
       const me = user || (await refreshUser());
-      if (!me || me.role !== "ADMIN") {
+      if (!me || !canAccessAdminPanel(me.role)) {
         navigate("/");
         return;
       }
+      setActiveUser(me);
       setReady(true);
     };
 
     bootstrap();
-  }, [token]);
+  }, [token, user, refreshUser, navigate]);
 
   const loadUsers = async () => {
     try {
@@ -315,30 +355,71 @@ const Admin = () => {
     }
   };
 
+  const loadDashboard = async () => {
+    if (!allowDashboard) return;
+    try {
+      setDashboardLoading(true);
+      const filters = {};
+      if (dashboardFilters.inicio) filters.inicio = dashboardFilters.inicio;
+      if (dashboardFilters.fim) filters.fim = dashboardFilters.fim;
+      const data = await getDashboardOverview(filters);
+      setDashboardData(data || null);
+    } catch (error) {
+      setDashboardData(null);
+      toast({ variant: "error", message: getErrorMessage(error) });
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!ready) return;
 
     const initialize = async () => {
-      loadUsers();
-      loadServices();
-      loadCommissions();
-      loadCommissionRate();
-      loadCash();
-      loadCashClosings();
+      if (allowUsers) loadUsers();
+      if (allowServices) loadServices();
+      if (allowCommissions) {
+        loadCommissions();
+        loadCommissionRate();
+      }
+      if (allowCash) {
+        loadCash();
+        loadCashClosings();
+      }
+      if (allowDashboard) {
+        loadDashboard();
+      }
 
-      const loadedBarbers = await loadBarbers();
-      const defaultBarber = indForm.barbeiroUsername || loadedBarbers[0]?.username;
-      loadIndisponibilidades(defaultBarber);
-      loadCalendarAppointments();
+      if (allowSchedule || allowIndisponibilidade || allowCash) {
+        const loadedBarbers = await loadBarbers();
+        const defaultBarber = indForm.barbeiroUsername || loadedBarbers[0]?.username;
+
+        if (allowIndisponibilidade) {
+          loadIndisponibilidades(defaultBarber);
+        }
+      }
+
+      if (allowSchedule) {
+        loadCalendarAppointments();
+      }
     };
 
     initialize();
-  }, [ready]);
+  }, [
+    ready,
+    allowUsers,
+    allowServices,
+    allowCommissions,
+    allowCash,
+    allowDashboard,
+    allowSchedule,
+    allowIndisponibilidade
+  ]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !allowSchedule) return;
     loadCalendarAppointments();
-  }, [calendarMonth, calendarBarberFilter]);
+  }, [ready, allowSchedule, calendarMonth, calendarBarberFilter]);
 
   const resetServiceForm = () => {
     setServiceForm({
@@ -624,9 +705,29 @@ const Admin = () => {
   const saldo = cashSummary.entrada - cashSummary.saida;
   const isCustomClosingPeriod = cashClosingForm.periodo === "PERSONALIZADO";
 
+  const dashboardSeries = useMemo(
+    () => (dashboardData?.serieDiaria || []).slice(-14),
+    [dashboardData]
+  );
+
+  const maxDashboardEntrada = useMemo(() => {
+    const values = dashboardSeries.map((item) => Number(item.entradas || 0));
+    const maxValue = Math.max(0, ...values);
+    return maxValue > 0 ? maxValue : 1;
+  }, [dashboardSeries]);
+
   const handleCashFilter = () => {
-    loadCash();
-    loadCashClosings();
+    if (allowCash) {
+      loadCash();
+      loadCashClosings();
+    }
+    if (allowDashboard) {
+      loadDashboard();
+    }
+  };
+
+  const handleDashboardFilter = () => {
+    loadDashboard();
   };
 
   const navLinks = [
@@ -637,15 +738,133 @@ const Admin = () => {
     { label: "Admin", href: "/admin" }
   ];
 
+  const panelTitle =
+    activeRole === Roles.GERENTE
+      ? "Painel Gerencial"
+      : activeRole === Roles.RECEPCIONISTA
+        ? "Painel de Recepcao"
+        : "Painel Administrativo";
+
+  const panelDescription =
+    activeRole === Roles.RECEPCIONISTA
+      ? "Operacao da agenda, visao de dias lotados e atendimento rapido aos clientes."
+      : "Gestao de usuarios, agenda, servicos, comissoes, caixa e indicadores.";
+
   return (
     <>
       <Header highlight="Admin" links={navLinks} />
       <main className="container admin-page">
         <section className="page-header" data-reveal>
-          <h2>Painel Administrativo</h2>
-          <p>Gestao completa de usuarios, agenda, servicos, comissoes e caixa.</p>
+          <h2>{panelTitle}</h2>
+          <p>{panelDescription}</p>
         </section>
 
+        {allowDashboard ? (
+          <section className="panel" data-reveal="delay-1">
+            <div className="panel-header">
+              <h3>Dashboard de gestao</h3>
+              <div className="panel-actions">
+                <input
+                  type="date"
+                  value={dashboardFilters.inicio}
+                  onChange={(event) =>
+                    setDashboardFilters((prev) => ({ ...prev, inicio: event.target.value }))
+                  }
+                />
+                <input
+                  type="date"
+                  value={dashboardFilters.fim}
+                  onChange={(event) =>
+                    setDashboardFilters((prev) => ({ ...prev, fim: event.target.value }))
+                  }
+                />
+                <button className="ghost-action" type="button" onClick={handleDashboardFilter}>
+                  Atualizar
+                </button>
+              </div>
+            </div>
+
+            <div className="panel-body">
+              {dashboardLoading ? <p className="muted">Carregando indicadores...</p> : null}
+
+              {dashboardData ? (
+                <>
+                  <div className="panel-summary">
+                    <div className="summary-card">
+                      <span>Agendamentos</span>
+                      <strong>{dashboardData.totalAgendamentos || 0}</strong>
+                    </div>
+                    <div className="summary-card">
+                      <span>Concluidos</span>
+                      <strong>{dashboardData.totalConcluidos || 0}</strong>
+                    </div>
+                    <div className="summary-card">
+                      <span>Saldo caixa</span>
+                      <strong>{formatCurrency(dashboardData.saldoCaixa)}</strong>
+                    </div>
+                    <div className="summary-card">
+                      <span>Ticket medio</span>
+                      <strong>{formatCurrency(dashboardData.ticketMedio)}</strong>
+                    </div>
+                  </div>
+
+                  <div className="dashboard-grid">
+                    <article className="dashboard-card">
+                      <h4>Entradas dos ultimos dias</h4>
+                      {!dashboardSeries.length ? (
+                        <p className="muted">Sem dados de serie diaria.</p>
+                      ) : (
+                        <div className="dashboard-bars">
+                          {dashboardSeries.map((item) => {
+                            const value = Number(item.entradas || 0);
+                            const height = Math.max(8, Math.round((value / maxDashboardEntrada) * 100));
+                            return (
+                              <div key={item.data} className="dashboard-bar-item">
+                                <div
+                                  className="dashboard-bar"
+                                  style={{ height: `${height}%` }}
+                                  title={`${formatDateBr(item.data)}: ${formatCurrency(value)}`}
+                                />
+                                <small>{formatDateBr(item.data).slice(0, 5)}</small>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </article>
+
+                    <article className="dashboard-card">
+                      <h4>Ranking de barbeiros</h4>
+                      {!dashboardData.rankingBarbeiros?.length ? (
+                        <p className="muted">Sem ranking no periodo.</p>
+                      ) : (
+                        <div className="panel-list">
+                          {dashboardData.rankingBarbeiros.slice(0, 5).map((item) => (
+                            <article key={item.barbeiroUsername} className="row-card">
+                              <div className="row-main">
+                                <strong>{item.barbeiroNome || item.barbeiroUsername}</strong>
+                                <span>@{item.barbeiroUsername}</span>
+                              </div>
+                              <div className="row-meta">
+                                <span className="tag">Ag.: {item.agendamentos || 0}</span>
+                                <span className="tag">Concl.: {item.concluidos || 0}</span>
+                                <span className="tag">Fat.: {formatCurrency(item.faturamento)}</span>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </article>
+                  </div>
+                </>
+              ) : !dashboardLoading ? (
+                <p className="muted">Sem dados para o periodo informado.</p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {allowSchedule ? (
         <section className="panel" data-reveal="delay-1">
           <div className="panel-header">
             <h3>Calendario global de agendamentos</h3>
@@ -709,7 +928,9 @@ const Admin = () => {
             </div>
           </div>
         </section>
+        ) : null}
 
+        {allowUsers ? (
         <section className="panel" data-reveal="delay-2">
           <div className="panel-header">
             <h3>Usuarios</h3>
@@ -726,6 +947,8 @@ const Admin = () => {
               >
                 <option value="">Todos os papeis</option>
                 <option value="ADMIN">ADMIN</option>
+                <option value="GERENTE">GERENTE</option>
+                <option value="RECEPCIONISTA">RECEPCIONISTA</option>
                 <option value="BARBEIRO">BARBEIRO</option>
                 <option value="USER">USER</option>
               </select>
@@ -756,28 +979,34 @@ const Admin = () => {
                       <span>{userItem.email}</span>
                     </div>
                     <div className="row-meta">
-                      <span className="tag">{userItem.role}</span>
+                      <span className="tag">{formatRoleLabel(userItem.role)}</span>
                       <span className={`tag ${userItem.status ? "tag--success" : "tag--danger"}`}>
                         {userItem.status ? "Ativo" : "Inativo"}
                       </span>
                     </div>
                     <div className="row-actions">
-                      <select
-                        value={userItem.role}
-                        onChange={async (event) => {
-                          try {
-                            await updateUserRole(userItem.username, event.target.value);
-                            toast({ variant: "success", message: "Role atualizada." });
-                            loadUsers();
-                          } catch (error) {
-                            toast({ variant: "error", message: getErrorMessage(error) });
-                          }
-                        }}
-                      >
-                        <option value="ADMIN">ADMIN</option>
-                        <option value="BARBEIRO">BARBEIRO</option>
-                        <option value="USER">USER</option>
-                      </select>
+                      {allowUserRoleChange ? (
+                        <select
+                          value={userItem.role}
+                          onChange={async (event) => {
+                            try {
+                              await updateUserRole(userItem.username, event.target.value);
+                              toast({ variant: "success", message: "Role atualizada." });
+                              loadUsers();
+                            } catch (error) {
+                              toast({ variant: "error", message: getErrorMessage(error) });
+                            }
+                          }}
+                        >
+                          <option value="ADMIN">ADMIN</option>
+                          <option value="GERENTE">GERENTE</option>
+                          <option value="RECEPCIONISTA">RECEPCIONISTA</option>
+                          <option value="BARBEIRO">BARBEIRO</option>
+                          <option value="USER">USER</option>
+                        </select>
+                      ) : (
+                        <span className="tag">{formatRoleLabel(userItem.role)}</span>
+                      )}
 
                       <button
                         type="button"
@@ -801,7 +1030,9 @@ const Admin = () => {
             {usersEmpty ? <p className="muted">Sem resultados para os filtros.</p> : null}
           </div>
         </section>
+        ) : null}
 
+        {allowServices ? (
         <section className="panel" data-reveal="delay-3">
           <div className="panel-header">
             <h3>Servicos</h3>
@@ -930,7 +1161,9 @@ const Admin = () => {
             {servicesEmpty ? <p className="muted">Falha ao carregar servicos.</p> : null}
           </div>
         </section>
+        ) : null}
 
+        {allowIndisponibilidade ? (
         <section className="panel" data-reveal="delay-4">
           <div className="panel-header">
             <h3>Indisponibilidades</h3>
@@ -1041,7 +1274,9 @@ const Admin = () => {
             {indisponibilidadesEmpty ? <p className="muted">Sem resultados para o barbeiro.</p> : null}
           </div>
         </section>
+        ) : null}
 
+        {allowCommissions ? (
         <section className="panel" data-reveal="delay-5">
           <div className="panel-header">
             <h3>Comissoes</h3>
@@ -1149,7 +1384,9 @@ const Admin = () => {
             {commissionsEmpty ? <p className="muted">Falha ao carregar comissoes.</p> : null}
           </div>
         </section>
+        ) : null}
 
+        {allowCash ? (
         <section className="panel" data-reveal="delay-6">
           <div className="panel-header">
             <h3>Caixa</h3>
@@ -1532,6 +1769,7 @@ const Admin = () => {
             {cashEmpty ? <p className="muted">Falha ao carregar lancamentos.</p> : null}
           </div>
         </section>
+        ) : null}
       </main>
       <Footer />
     </>

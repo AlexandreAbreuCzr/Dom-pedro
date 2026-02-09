@@ -1040,6 +1040,54 @@
   margin-bottom: 20px;
 }
 
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.dashboard-card {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.dashboard-card h4 {
+  font-size: 0.98rem;
+  color: var(--primary);
+}
+
+.dashboard-bars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22px, 1fr));
+  gap: 8px;
+  align-items: end;
+  min-height: 170px;
+}
+
+.dashboard-bar-item {
+  display: grid;
+  gap: 6px;
+  align-items: end;
+  justify-items: center;
+}
+
+.dashboard-bar {
+  width: 100%;
+  min-height: 8px;
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(180deg, rgba(234, 196, 82, 0.95), rgba(234, 196, 82, 0.45));
+  border: 1px solid rgba(234, 196, 82, 0.45);
+}
+
+.dashboard-bar-item small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
 .cash-closing-form,
 .cash-closing-history {
   background: var(--surface-alt);
@@ -1376,6 +1424,10 @@
 @media (max-width: 960px) {
   .booking-calendar-block,
   .calendar-two-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 

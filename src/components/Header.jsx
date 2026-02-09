@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
 import { useToast } from "./ToastProvider";
+import { canAccessAdminPanel, canAccessBarberPanel } from "../lib/permissions.js";
 
 const assetBase = import.meta.env.BASE_URL;
 
@@ -36,8 +37,8 @@ export const Header = ({ highlight, links = homeLinks, id }) => {
   }, []);
 
   const roleLinks = [];
-  if (user?.role === "ADMIN") roleLinks.push({ label: "Admin", href: "/admin" });
-  if (user?.role === "BARBEIRO" || user?.role === "ADMIN") {
+  if (canAccessAdminPanel(user?.role)) roleLinks.push({ label: "Painel", href: "/admin" });
+  if (canAccessBarberPanel(user?.role)) {
     roleLinks.push({ label: "Barbeiro", href: "/barbeiro" });
   }
 

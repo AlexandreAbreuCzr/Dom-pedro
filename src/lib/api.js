@@ -19,6 +19,7 @@ const defaultConfig = {
     indisponibilidade: "/indisponibilidade",
     commissions: "/comissao",
     cash: "/caixa",
+    dashboardOverview: "/dashboard/overview",
     cashClosingPreview: "/caixa/fechamento/preview",
     cashClosing: "/caixa/fechamento",
     reviews: "/avaliacao"
@@ -499,6 +500,14 @@ const getCash = (filters = {}) => {
   });
 };
 
+const getDashboardOverview = (filters = {}) => {
+  const params = new URLSearchParams(filters);
+  const query = params.toString();
+  return apiRequest(`${config.endpoints.dashboardOverview}${query ? `?${query}` : ""}`, {
+    method: "GET"
+  });
+};
+
 const createCashEntry = (payload) =>
   apiRequest(config.endpoints.cash, {
     method: "POST",
@@ -587,6 +596,7 @@ export {
   getCommissionRate,
   updateCommissionRate,
   getCash,
+  getDashboardOverview,
   createCashEntry,
   getCashClosingPreview,
   createCashClosing,

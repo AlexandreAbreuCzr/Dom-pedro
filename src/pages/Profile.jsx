@@ -5,6 +5,7 @@ import { Header } from "../components/Header.jsx";
 import { useToast } from "../components/ToastProvider.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { getErrorMessage, updateMe } from "../lib/api.js";
+import { canAccessAdminPanel, canAccessBarberPanel } from "../lib/permissions.js";
 
 const Profile = () => {
   const { token, user, refreshUser, logout } = useAuth();
@@ -110,8 +111,8 @@ const Profile = () => {
     navigate("/");
   };
 
-  const showAdmin = user?.role === "ADMIN";
-  const showBarber = user?.role === "BARBEIRO" || user?.role === "ADMIN";
+  const showAdmin = canAccessAdminPanel(user?.role);
+  const showBarber = canAccessBarberPanel(user?.role);
 
   const navLinks = [
     { label: "Serviços", href: "/#services" },
@@ -131,7 +132,7 @@ const Profile = () => {
           <div className="profile-actions" hidden={!(showAdmin || showBarber)}>
             {showAdmin ? (
               <Link className="primary-action" to="/admin">
-                Ir para Admin
+                Ir para Painel
               </Link>
             ) : null}
             {showBarber ? (
