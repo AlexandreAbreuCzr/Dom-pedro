@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin | Dom Pedro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f0f0f">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Ephesis&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+<header class="header">
+  <nav class="nav container">
+    <div class="brand">
+      <h1>Dom Pedro</h1>
+      <span>Barber Shop</span>
+    </div>
+
+    <ul class="nav-links">
+      <li><a href="index.html#services">Serviços</a></li>
+      <li><a href="index.html#about">Sobre</a></li>
+      <li><a href="index.html#info">Informações</a></li>
+      <li><a href="index.html#reviews">Avaliações</a></li>
+      <li><a href="admin.html" class="highlight">Admin</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <a class="user-btn" href="login.html" data-auth-trigger aria-label="Entrar">
+        <span class="user-initial" data-auth-initial hidden></span>
+        <img src="assets/icons/user.svg" alt="">
+      </a>
+
+      <button class="menu-btn" aria-label="Abrir menu">
+        <img src="assets/icons/menu.svg" alt="">
+      </button>
+    </div>
+  </nav>
+</header>
+
+<main class="container admin-page">
+  <section class="page-header" data-reveal>
+    <h2>Painel Administrativo</h2>
+    <p>Gerencie usuários e serviços da barbearia.</p>
+  </section>
+
+  <section class="panel" data-reveal="delay-1">
+    <div class="panel-header">
+      <h3>Calendario geral de agendamentos</h3>
+      <div class="panel-actions">
+        <select data-admin-calendar-barber>
+          <option value="">Todos os barbeiros</option>
+        </select>
+        <select data-admin-calendar-status>
+          <option value="">Todos os status</option>
+          <option value="AGENDADO">Agendado</option>
+          <option value="REQUISITADO">Requisitado</option>
+          <option value="CANCELADO">Cancelado</option>
+          <option value="CONCLUIDO">Concluido</option>
+          <option value="EXPIRADO">Expirado</option>
+        </select>
+        <button class="ghost-action" type="button" data-admin-calendar-filter>Aplicar</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="calendar-shell" data-admin-calendar>
+        <div class="calendar-toolbar">
+          <button class="ghost-action ghost-action--small" type="button" data-calendar-prev>Mes anterior</button>
+          <strong data-calendar-title>--</strong>
+          <button class="ghost-action ghost-action--small" type="button" data-calendar-next>Proximo mes</button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>Dom</span>
+          <span>Seg</span>
+          <span>Ter</span>
+          <span>Qua</span>
+          <span>Qui</span>
+          <span>Sex</span>
+          <span>Sab</span>
+        </div>
+        <div class="calendar-grid" data-calendar-days></div>
+      </div>
+      <div class="calendar-events" data-calendar-events></div>
+      <p class="muted" data-calendar-empty hidden>Nenhum agendamento no dia selecionado.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal="delay-2">
+    <div class="panel-header">
+      <h3>Usuários</h3>
+      <div class="panel-actions">
+        <input type="text" placeholder="Buscar por nome" data-user-search>
+        <select data-user-role-filter>
+          <option value="">Todos os papéis</option>
+          <option value="ADMIN">Admin</option>
+          <option value="BARBEIRO">Barbeiro</option>
+          <option value="USER">Cliente</option>
+        </select>
+        <select data-user-status-filter>
+          <option value="">Todos os status</option>
+          <option value="true">Ativo</option>
+          <option value="false">Inativo</option>
+        </select>
+        <button class="ghost-action" type="button" data-user-filter>Filtrar</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="panel-list" data-users-list></div>
+      <p class="muted" data-users-empty hidden>Nenhum usuário encontrado.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal="delay-3">
+    <div class="panel-header">
+      <h3>Serviços</h3>
+      <p class="muted">Crie, edite e ative/desative serviços.</p>
+    </div>
+    <div class="panel-body">
+      <form class="panel-form" data-service-form>
+        <input type="hidden" data-service-id>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="service-name">Nome</label>
+            <input id="service-name" type="text" placeholder="Corte Masculino" required>
+          </div>
+          <div class="form-field">
+            <label for="service-price">Preço</label>
+            <input id="service-price" type="text" placeholder="45.00" required>
+          </div>
+          <div class="form-field">
+            <label for="service-duration">Duração (min)</label>
+            <input id="service-duration" type="number" min="5" step="5" placeholder="40" required>
+          </div>
+          <div class="form-field">
+            <label for="service-status">Ativo</label>
+            <select id="service-status">
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="service-image">Imagem</label>
+            <input id="service-image" type="file" accept="image/*">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="primary-action" type="submit" data-service-submit>Salvar serviço</button>
+          <button class="ghost-action" type="button" data-service-cancel hidden>Cancelar edição</button>
+        </div>
+      </form>
+
+      <div class="panel-list" data-services-list></div>
+      <p class="muted" data-services-empty hidden>Nenhum serviço cadastrado.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal="delay-4">
+    <div class="panel-header">
+      <h3>Comissoes</h3>
+      <div class="panel-actions">
+        <input type="date" data-commission-start>
+        <input type="date" data-commission-end>
+        <input type="number" min="0" max="100" step="0.01" placeholder="Taxa global (%)" data-commission-rate>
+        <label class="inline-check">
+          <input type="checkbox" data-commission-apply-all>
+          Aplicar em todas
+        </label>
+        <button class="ghost-action" type="button" data-commission-rate-save>Atualizar taxa</button>
+        <button class="ghost-action" type="button" data-commission-filter>Filtrar</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="panel-list" data-commissions-list></div>
+      <p class="muted" data-commissions-empty hidden>Nenhuma comissao encontrada.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal="delay-5">
+    <div class="panel-header">
+      <h3>Caixa</h3>
+      <div class="panel-actions">
+        <input type="date" data-cash-start>
+        <input type="date" data-cash-end>
+        <select data-cash-type>
+          <option value="">Todos</option>
+          <option value="ENTRADA">Entrada</option>
+          <option value="SAIDA">Saida</option>
+        </select>
+        <button class="ghost-action" type="button" data-cash-filter>Filtrar</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <form class="panel-form" data-cash-form>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="cash-tipo">Tipo</label>
+            <select id="cash-tipo" required>
+              <option value="ENTRADA">Entrada</option>
+              <option value="SAIDA">Saida</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="cash-descricao">Descricao</label>
+            <input id="cash-descricao" type="text" placeholder="Produto, aluguel..." required>
+          </div>
+          <div class="form-field">
+            <label for="cash-valor">Valor</label>
+            <input id="cash-valor" type="text" placeholder="80.00" required>
+          </div>
+          <div class="form-field">
+            <label for="cash-barbeiro">Barbeiro</label>
+            <input id="cash-barbeiro" type="text" placeholder="username (opcional)">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="primary-action" type="submit">Adicionar lancamento</button>
+        </div>
+      </form>
+
+      <div class="panel-summary" data-cash-summary></div>
+      <div class="panel-list" data-cash-list></div>
+      <p class="muted" data-cash-empty hidden>Nenhum lancamento encontrado.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>© 2026 Barbearia Dom Pedro</p>
+</footer>
+
+<div class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/site.js"></script>
+<script src="js/mobileMenu.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
