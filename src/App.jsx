@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
@@ -6,7 +6,6 @@ import Register from "./pages/Register.jsx";
 import Profile from "./pages/Profile.jsx";
 import Booking from "./pages/Booking.jsx";
 import Admin from "./pages/Admin.jsx";
-import Barber from "./pages/Barber.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 const ScrollToHash = () => {
@@ -46,7 +45,7 @@ const App = () => (
       <Route path="/perfil" element={<Profile />} />
       <Route path="/agendamento" element={<Booking />} />
       <Route path="/admin" element={<Admin />} />
-      <Route path="/barbeiro" element={<Barber />} />
+      <Route path="/barbeiro" element={<Navigate to="/admin" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </>

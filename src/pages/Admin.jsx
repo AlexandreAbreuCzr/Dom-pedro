@@ -7,6 +7,7 @@ import { MonthCalendar, calendarUtils } from "../components/MonthCalendar.jsx";
 import { useToast } from "../components/ToastProvider.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import {
+  createEmployee,
   createCashEntry,
   createCashClosing,
   createService,
@@ -28,7 +29,7 @@ import {
   getErrorMessage,
   getIndisponibilidades,
   getServices,
-  getUsersAdmin,
+  getEmployeesAdmin,
   normalizeAppointment,
   normalizeBarber,
   normalizeService,
@@ -97,9 +98,8 @@ const formatDateTimeBr = (value) => {
 
 const roleLabels = {
   ADMIN: "Administrador",
-  GERENTE: "Gerente",
-  RECEPCIONISTA: "Recepcionista",
-  BARBEIRO: "Barbeiro",
+  DONO: "Dono",
+  FUNCIONARIO: "Funcionario",
   USER: "Cliente"
 };
 
@@ -144,6 +144,14 @@ const Admin = () => {
   const [users, setUsers] = useState([]);
   const [usersEmpty, setUsersEmpty] = useState(false);
   const [userFilters, setUserFilters] = useState({ name: "", role: "", status: "" });
+  const [employeeForm, setEmployeeForm] = useState({
+    username: "",
+    name: "",
+    email: "",
+    telefone: "",
+    password: "",
+    role: Roles.FUNCIONARIO
+  });
 
   const [services, setServices] = useState([]);
   const [servicesEmpty, setServicesEmpty] = useState(false);
@@ -218,6 +226,65 @@ const Admin = () => {
   const allowCash = canManageCash(permissionContext);
   const allowDashboard = canViewBusinessDashboard(permissionContext);
 
+  const panelTabs = useMemo(() => {
+    const tabs = [];
+
+    const visaoItems = [
+      allowDashboard ? { id: "dashboard", label: "Dashboard" } : null,
+      allowSchedule ? { id: "agenda", label: "Agenda" } : null
+    ].filter(Boolean);
+    if (visaoItems.length) tabs.push({ id: "visao", label: "Visao", items: visaoItems });
+
+    const equipeItems = [allowUsers ? { id: "funcionarios", label: "Funcionarios" } : null].filter(Boolean);
+    if (equipeItems.length) tabs.push({ id: "equipe", label: "Equipe", items: equipeItems });
+
+    const cadastroItems = [
+      allowServices ? { id: "servicos", label: "Servicos" } : null,
+      allowIndisponibilidade ? { id: "indisponibilidade", label: "Indisponibilidade" } : null
+    ].filter(Boolean);
+    if (cadastroItems.length) tabs.push({ id: "cadastros", label: "Cadastros", items: cadastroItems });
+
+    const financeiroItems = [
+      allowCommissions ? { id: "comissoes", label: "Comissoes" } : null,
+      allowCash ? { id: "caixa", label: "Caixa" } : null
+    ].filter(Boolean);
+    if (financeiroItems.length) tabs.push({ id: "financeiro", label: "Financeiro", items: financeiroItems });
+
+    return tabs;
+  }, [
+    allowDashboard,
+    allowSchedule,
+    allowUsers,
+    allowServices,
+    allowIndisponibilidade,
+    allowCommissions,
+    allowCash
+  ]);
+
+  const [activeTab, setActiveTab] = useState("");
+  const [activeSection, setActiveSection] = useState("");
+
+  useEffect(() => {
+    if (!panelTabs.length) {
+      setActiveTab("");
+      setActiveSection("");
+      return;
+    }
+
+    const currentTab = panelTabs.find((tab) => tab.id === activeTab) || panelTabs[0];
+    const currentSectionExists = currentTab.items.some((item) => item.id === activeSection);
+
+    if (currentTab.id !== activeTab) {
+      setActiveTab(currentTab.id);
+    }
+    if (!currentSectionExists) {
+      setActiveSection(currentTab.items[0]?.id || "");
+    }
+  }, [panelTabs, activeTab, activeSection]);
+
+  const currentPanelTab = panelTabs.find((tab) => tab.id === activeTab) || null;
+  const isSectionActive = (sectionId) => activeSection === sectionId;
+
   useEffect(() => {
     if (!token) {
       navigate("/login?redirect=/admin");
@@ -241,10 +308,10 @@ const Admin = () => {
     try {
       const filters = {};
       if (userFilters.name) filters.name = userFilters.name;
-      if (userFilters.role) filters.userRole = userFilters.role;
+      if (userFilters.role) filters.role = userFilters.role;
       if (userFilters.status) filters.status = userFilters.status;
 
-      const list = await getUsersAdmin(filters);
+      const list = await getEmployeesAdmin(filters);
       setUsers(list || []);
       setUsersEmpty(!(list && list.length));
     } catch (error) {
@@ -419,6 +486,41 @@ const Admin = () => {
       await updateUserPermissions(userItem.username, Array.from(current));
       toast({ variant: "success", message: "Permissoes atualizadas." });
       loadUsers();
+    } catch (error) {
+      toast({ variant: "error", message: getErrorMessage(error) });
+    }
+  };
+
+  const handleEmployeeCreate = async (event) => {
+    event.preventDefault();
+
+    const payload = {
+      username: employeeForm.username.trim().toLowerCase(),
+      name: employeeForm.name.trim(),
+      email: employeeForm.email.trim().toLowerCase(),
+      telefone: employeeForm.telefone.trim().replace(/\D/g, ""),
+      password: employeeForm.password,
+      role: employeeForm.role || Roles.FUNCIONARIO
+    };
+
+    if (!payload.username || !payload.name || !payload.email || !payload.password) {
+      toast({ variant: "warning", message: "Preencha os campos obrigatorios do funcionario." });
+      return;
+    }
+
+    try {
+      await createEmployee(payload);
+      setEmployeeForm({
+        username: "",
+        name: "",
+        email: "",
+        telefone: "",
+        password: "",
+        role: Roles.FUNCIONARIO
+      });
+      toast({ variant: "success", message: "Funcionario cadastrado com sucesso." });
+      loadUsers();
+      loadBarbers();
     } catch (error) {
       toast({ variant: "error", message: getErrorMessage(error) });
     }
@@ -787,31 +889,64 @@ const Admin = () => {
     { label: "Sobre", href: "/#about" },
     { label: "Informacoes", href: "/#info" },
     { label: "Avaliacoes", href: "/#reviews" },
-    { label: "Admin", href: "/admin" }
+    { label: "Painel", href: "/admin" }
   ];
 
   const panelTitle =
-    activeRole === Roles.GERENTE
-      ? "Painel Gerencial"
-      : activeRole === Roles.RECEPCIONISTA
-        ? "Painel de Recepcao"
+    activeRole === Roles.DONO
+      ? "Painel do Dono"
+      : activeRole === Roles.FUNCIONARIO
+        ? "Painel do Funcionario"
         : "Painel Administrativo";
 
   const panelDescription =
-    activeRole === Roles.RECEPCIONISTA
-      ? "Operacao da agenda, visao de dias lotados e atendimento rapido aos clientes."
-      : "Gestao de usuarios, agenda, servicos, comissoes, caixa e indicadores.";
+    activeRole === Roles.FUNCIONARIO
+      ? "Acesse somente os modulos liberados para seu nivel de acesso."
+      : "Gestao de equipe, agenda, servicos, comissoes, caixa e indicadores.";
 
   return (
     <>
-      <Header highlight="Admin" links={navLinks} />
+      <Header highlight="Painel" links={navLinks} />
       <main className="container admin-page">
         <section className="page-header" data-reveal>
           <h2>{panelTitle}</h2>
           <p>{panelDescription}</p>
         </section>
 
-        {allowDashboard ? (
+        <div className="admin-workspace" data-reveal="delay-1">
+          <aside className="admin-sidenav panel">
+            <strong>Modulos</strong>
+            <div className="admin-sidenav-tabs">
+              {panelTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`admin-sidenav-tab ${tab.id === activeTab ? "is-active" : ""}`}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setActiveSection(tab.items[0]?.id || "");
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="admin-sidenav-subtabs">
+              {(currentPanelTab?.items || []).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`admin-sidenav-subtab ${item.id === activeSection ? "is-active" : ""}`}
+                  onClick={() => setActiveSection(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <div className="admin-content">
+        {allowDashboard && isSectionActive("dashboard") ? (
           <section className="panel" data-reveal="delay-1">
             <div className="panel-header">
               <h3>Dashboard de gestao</h3>
@@ -886,7 +1021,7 @@ const Admin = () => {
                     </article>
 
                     <article className="dashboard-card">
-                      <h4>Ranking de barbeiros</h4>
+                      <h4>Ranking de funcionarios</h4>
                       {!dashboardData.rankingBarbeiros?.length ? (
                         <p className="muted">Sem ranking no periodo.</p>
                       ) : (
@@ -916,7 +1051,7 @@ const Admin = () => {
           </section>
         ) : null}
 
-        {allowSchedule ? (
+        {allowSchedule && isSectionActive("agenda") ? (
         <section className="panel" data-reveal="delay-1">
           <div className="panel-header">
             <h3>Calendario global de agendamentos</h3>
@@ -925,7 +1060,7 @@ const Admin = () => {
                 value={calendarBarberFilter}
                 onChange={(event) => setCalendarBarberFilter(event.target.value)}
               >
-                <option value="">Todos os barbeiros</option>
+                <option value="">Todos os funcionarios</option>
                 {barbers.map((barber) => (
                   <option key={barber.username} value={barber.username}>
                     {barber.name ? `${barber.name} (${barber.username})` : barber.username}
@@ -967,7 +1102,7 @@ const Admin = () => {
                         <span>
                           {formatDateBr(appointment.date)} as {formatTime(appointment.time)}
                         </span>
-                        <span>Barbeiro: {appointment.barbeiroUsername || "-"}</span>
+                        <span>Funcionario: {appointment.barbeiroUsername || "-"}</span>
                         <span>Cliente: {appointment.clienteUsername || "-"}</span>
                       </div>
                       <div className="row-meta">
@@ -982,10 +1117,10 @@ const Admin = () => {
         </section>
         ) : null}
 
-        {allowUsers ? (
+        {allowUsers && isSectionActive("funcionarios") ? (
         <section className="panel" data-reveal="delay-2">
           <div className="panel-header">
-            <h3>Usuarios</h3>
+            <h3>Funcionarios</h3>
             <div className="panel-actions">
               <input
                 type="text"
@@ -997,12 +1132,9 @@ const Admin = () => {
                 value={userFilters.role}
                 onChange={(event) => setUserFilters((prev) => ({ ...prev, role: event.target.value }))}
               >
-                <option value="">Todos os papeis</option>
-                <option value="ADMIN">ADMIN</option>
-                <option value="GERENTE">GERENTE</option>
-                <option value="RECEPCIONISTA">RECEPCIONISTA</option>
-                <option value="BARBEIRO">BARBEIRO</option>
-                <option value="USER">USER</option>
+                <option value="">Todos os cargos</option>
+                <option value="DONO">DONO</option>
+                <option value="FUNCIONARIO">FUNCIONARIO</option>
               </select>
               <select
                 value={userFilters.status}
@@ -1019,8 +1151,91 @@ const Admin = () => {
           </div>
 
           <div className="panel-body">
+            <form className="panel-form" onSubmit={handleEmployeeCreate}>
+              <div className="form-grid">
+                <div className="form-field">
+                  <label htmlFor="employee-username">Username</label>
+                  <input
+                    id="employee-username"
+                    type="text"
+                    required
+                    value={employeeForm.username}
+                    onChange={(event) =>
+                      setEmployeeForm((prev) => ({ ...prev, username: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="employee-name">Nome</label>
+                  <input
+                    id="employee-name"
+                    type="text"
+                    required
+                    value={employeeForm.name}
+                    onChange={(event) =>
+                      setEmployeeForm((prev) => ({ ...prev, name: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="employee-email">Email</label>
+                  <input
+                    id="employee-email"
+                    type="email"
+                    required
+                    value={employeeForm.email}
+                    onChange={(event) =>
+                      setEmployeeForm((prev) => ({ ...prev, email: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="employee-telefone">Telefone</label>
+                  <input
+                    id="employee-telefone"
+                    type="tel"
+                    value={employeeForm.telefone}
+                    onChange={(event) =>
+                      setEmployeeForm((prev) => ({ ...prev, telefone: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="employee-password">Senha inicial</label>
+                  <input
+                    id="employee-password"
+                    type="password"
+                    minLength={8}
+                    required
+                    value={employeeForm.password}
+                    onChange={(event) =>
+                      setEmployeeForm((prev) => ({ ...prev, password: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="employee-role">Cargo</label>
+                  <select
+                    id="employee-role"
+                    value={employeeForm.role}
+                    onChange={(event) =>
+                      setEmployeeForm((prev) => ({ ...prev, role: event.target.value }))
+                    }
+                  >
+                    {activeRole === Roles.ADMIN ? <option value="DONO">DONO</option> : null}
+                    <option value="FUNCIONARIO">FUNCIONARIO</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-actions">
+                <button className="primary-action" type="submit">
+                  Adicionar funcionario
+                </button>
+              </div>
+            </form>
+
             {!users.length ? (
-              <p className="muted">Nenhum usuario encontrado.</p>
+              <p className="muted">Nenhum funcionario encontrado.</p>
             ) : (
               <div className="panel-list">
                 {users.map((userItem) => {
@@ -1059,11 +1274,10 @@ const Admin = () => {
                               }
                             }}
                           >
-                            <option value="ADMIN">ADMIN</option>
-                            <option value="GERENTE">GERENTE</option>
-                            <option value="RECEPCIONISTA">RECEPCIONISTA</option>
-                            <option value="BARBEIRO">BARBEIRO</option>
-                            <option value="USER">USER</option>
+                            <option value="DONO" disabled={activeRole !== Roles.ADMIN}>
+                              DONO
+                            </option>
+                            <option value="FUNCIONARIO">FUNCIONARIO</option>
                           </select>
                         ) : (
                           <span className="tag">{formatRoleLabel(userItem.role)}</span>
@@ -1122,12 +1336,12 @@ const Admin = () => {
                 })}
               </div>
             )}
-            {usersEmpty ? <p className="muted">Sem resultados para os filtros.</p> : null}
+            {usersEmpty ? <p className="muted">Sem resultados para os filtros de funcionarios.</p> : null}
           </div>
         </section>
         ) : null}
 
-        {allowServices ? (
+        {allowServices && isSectionActive("servicos") ? (
         <section className="panel" data-reveal="delay-3">
           <div className="panel-header">
             <h3>Servicos</h3>
@@ -1258,18 +1472,18 @@ const Admin = () => {
         </section>
         ) : null}
 
-        {allowIndisponibilidade ? (
+        {allowIndisponibilidade && isSectionActive("indisponibilidade") ? (
         <section className="panel" data-reveal="delay-4">
           <div className="panel-header">
             <h3>Indisponibilidades</h3>
-            <p className="muted">Registre periodos sem atendimento por barbeiro.</p>
+            <p className="muted">Registre periodos sem atendimento por funcionario.</p>
           </div>
 
           <div className="panel-body">
             <form className="panel-form" onSubmit={handleIndisponibilidadeSubmit}>
               <div className="form-grid">
                 <div className="form-field">
-                  <label htmlFor="ind-barbeiro">Barbeiro</label>
+                  <label htmlFor="ind-barbeiro">Funcionario</label>
                   <select
                     id="ind-barbeiro"
                     value={indForm.barbeiroUsername}
@@ -1280,7 +1494,7 @@ const Admin = () => {
                     }}
                     required
                   >
-                    <option value="">Selecione um barbeiro</option>
+                    <option value="">Selecione um funcionario</option>
                     {barbers.map((barber) => (
                       <option key={barber.username} value={barber.username}>
                         {barber.name ? `${barber.name} (${barber.username})` : barber.username}
@@ -1366,12 +1580,12 @@ const Admin = () => {
                 ))}
               </div>
             )}
-            {indisponibilidadesEmpty ? <p className="muted">Sem resultados para o barbeiro.</p> : null}
+            {indisponibilidadesEmpty ? <p className="muted">Sem resultados para o funcionario.</p> : null}
           </div>
         </section>
         ) : null}
 
-        {allowCommissions ? (
+        {allowCommissions && isSectionActive("comissoes") ? (
         <section className="panel" data-reveal="delay-5">
           <div className="panel-header">
             <h3>Comissoes</h3>
@@ -1481,7 +1695,7 @@ const Admin = () => {
         </section>
         ) : null}
 
-        {allowCash ? (
+        {allowCash && isSectionActive("caixa") ? (
         <section className="panel" data-reveal="delay-6">
           <div className="panel-header">
             <h3>Caixa</h3>
@@ -1670,7 +1884,7 @@ const Admin = () => {
                             <div className="row-main">
                               <strong>
                                 {barbeiro.barbeiroUsername === "sem_barbeiro"
-                                  ? "Sem barbeiro"
+                                  ? "Sem funcionario"
                                   : `@${barbeiro.barbeiroUsername}`}
                               </strong>
                               <span>Lancamentos: {barbeiro.totalLancamentos || 0}</span>
@@ -1684,7 +1898,7 @@ const Admin = () => {
                         ))}
                       </div>
                     ) : (
-                      <p className="muted">Sem lancamentos no periodo para detalhar por barbeiro.</p>
+                      <p className="muted">Sem lancamentos no periodo para detalhar por funcionario.</p>
                     )}
 
                   </div>
@@ -1782,7 +1996,7 @@ const Admin = () => {
                 </div>
 
                 <div className="form-field">
-                  <label htmlFor="cash-barbeiro">Barbeiro</label>
+                  <label htmlFor="cash-barbeiro">Funcionario</label>
                   <input
                     id="cash-barbeiro"
                     type="text"
@@ -1825,7 +2039,7 @@ const Admin = () => {
                   <article key={item.id} className="row-card">
                     <div className="row-main">
                       <strong>{item.descricao}</strong>
-                      <span>{item.barbeiroUsername ? `@${item.barbeiroUsername}` : "Sem barbeiro"}</span>
+                      <span>{item.barbeiroUsername ? `@${item.barbeiroUsername}` : "Sem funcionario"}</span>
                       <span>{item.agendamentoId ? `Agendamento ${item.agendamentoId}` : "Lancamento manual"}</span>
                     </div>
                     <div className="row-meta">
@@ -1837,7 +2051,7 @@ const Admin = () => {
                         <span className="tag">
                           {[
                             item.valorBarbeiro != null
-                              ? `Barbeiro: ${formatCurrency(item.valorBarbeiro)}`
+                              ? `Funcionario: ${formatCurrency(item.valorBarbeiro)}`
                               : null,
                             item.valorBarbearia != null
                               ? `Barbearia: ${formatCurrency(item.valorBarbearia)}`
@@ -1865,6 +2079,8 @@ const Admin = () => {
           </div>
         </section>
         ) : null}
+          </div>
+        </div>
       </main>
       <Footer />
     </>

@@ -16,6 +16,7 @@ const defaultConfig = {
     me: "/usuario/me",
     barbers: "/usuario/barbeiros",
     usersAdmin: "/usuario/admin",
+    employeesAdmin: "/usuario/admin/funcionarios",
     indisponibilidade: "/indisponibilidade",
     commissions: "/comissao",
     cash: "/caixa",
@@ -51,6 +52,15 @@ const defaultConfig = {
     userStatus: ({ status }) => ({ status }),
     userRole: ({ role }) => ({ role }),
     userPermissions: ({ permissoes }) => ({ permissoes }),
+    employeeCreate: ({ username, name, email, telefone, password, role, permissoes }) => ({
+      username,
+      name,
+      email,
+      telefone,
+      password,
+      role,
+      permissoes
+    }),
     serviceCreate: ({ name, price, duracaoEmMinutos }) => ({
       name,
       price,
@@ -408,6 +418,20 @@ const getUsersAdmin = (filters = {}) => {
   });
 };
 
+const getEmployeesAdmin = (filters = {}) => {
+  const params = new URLSearchParams(filters);
+  const query = params.toString();
+  return apiRequest(`${config.endpoints.employeesAdmin}${query ? `?${query}` : ""}`, {
+    method: "GET"
+  });
+};
+
+const createEmployee = (payload) =>
+  apiRequest(config.endpoints.employeesAdmin, {
+    method: "POST",
+    body: JSON.stringify(config.payloads.employeeCreate(payload))
+  });
+
 const updateUserStatus = (username, status) =>
   apiRequest(`${config.endpoints.usersAdmin}/${username}/status`, {
     method: "PATCH",
@@ -580,6 +604,8 @@ export {
   updateMe,
   getBarbers,
   getUsersAdmin,
+  getEmployeesAdmin,
+  createEmployee,
   updateUserStatus,
   updateUserRole,
   updateUserPermissions,

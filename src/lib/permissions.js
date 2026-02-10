@@ -1,8 +1,7 @@
 const Roles = {
   ADMIN: "ADMIN",
-  GERENTE: "GERENTE",
-  RECEPCIONISTA: "RECEPCIONISTA",
-  BARBEIRO: "BARBEIRO",
+  DONO: "DONO",
+  FUNCIONARIO: "FUNCIONARIO",
   USER: "USER"
 };
 
@@ -23,10 +22,11 @@ const allPermissions = Object.values(Permissions);
 
 const roleDefaults = {
   [Roles.ADMIN]: allPermissions,
-  [Roles.GERENTE]: [
+  [Roles.DONO]: [
     Permissions.DASHBOARD_VISUALIZAR,
     Permissions.USUARIOS_VISUALIZAR,
     Permissions.USUARIOS_GERIR,
+    Permissions.USUARIOS_ALTERAR_ROLE,
     Permissions.USUARIOS_ALTERAR_PERMISSOES,
     Permissions.AGENDA_GERIR,
     Permissions.SERVICOS_GERIR,
@@ -34,8 +34,7 @@ const roleDefaults = {
     Permissions.COMISSOES_GERIR,
     Permissions.CAIXA_GERIR
   ],
-  [Roles.RECEPCIONISTA]: [Permissions.USUARIOS_VISUALIZAR, Permissions.AGENDA_GERIR],
-  [Roles.BARBEIRO]: [Permissions.AGENDA_GERIR],
+  [Roles.FUNCIONARIO]: [Permissions.AGENDA_GERIR],
   [Roles.USER]: []
 };
 
@@ -80,7 +79,7 @@ const isOneOf = (context, ...allowed) => {
 };
 
 const canAccessAdminPanel = (context) =>
-  isOneOf(context, Roles.ADMIN, Roles.GERENTE, Roles.RECEPCIONISTA);
+  isOneOf(context, Roles.ADMIN, Roles.DONO, Roles.FUNCIONARIO);
 
 const canManageUsers = (context) => hasPermission(context, Permissions.USUARIOS_GERIR);
 
@@ -103,7 +102,7 @@ const canManageCash = (context) => hasPermission(context, Permissions.CAIXA_GERI
 const canViewBusinessDashboard = (context) =>
   hasPermission(context, Permissions.DASHBOARD_VISUALIZAR);
 
-const canAccessBarberPanel = (context) => isOneOf(context, Roles.ADMIN, Roles.BARBEIRO);
+const canAccessBarberPanel = (context) => canAccessAdminPanel(context);
 
 export {
   Roles,

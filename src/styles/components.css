@@ -220,6 +220,54 @@
   box-shadow: var(--shadow);
 }
 
+.admin-workspace {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-content {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-sidenav {
+  position: sticky;
+  top: calc(var(--header-height) + 16px);
+  padding: 16px;
+}
+
+.admin-sidenav > strong {
+  color: var(--primary);
+  font-size: 0.95rem;
+}
+
+.admin-sidenav-tabs,
+.admin-sidenav-subtabs {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-sidenav-tab,
+.admin-sidenav-subtab {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #111;
+  color: var(--text);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.admin-sidenav-tab.is-active,
+.admin-sidenav-subtab.is-active {
+  border-color: rgba(234, 196, 82, 0.65);
+  background: rgba(234, 196, 82, 0.14);
+  color: var(--primary);
+}
+
 .panel-header {
   display: flex;
   align-items: center;
@@ -1445,6 +1493,22 @@
 }
 
 @media (max-width: 960px) {
+  .admin-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidenav {
+    position: static;
+  }
+
+  .admin-sidenav-tabs {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .admin-sidenav-subtabs {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
   .booking-calendar-block,
   .calendar-two-columns {
     grid-template-columns: 1fr;

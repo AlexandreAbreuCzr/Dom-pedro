@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
 import { useToast } from "./ToastProvider";
-import { canAccessAdminPanel, canAccessBarberPanel } from "../lib/permissions.js";
+import { canAccessAdminPanel } from "../lib/permissions.js";
 
 const assetBase = import.meta.env.BASE_URL;
 
@@ -38,9 +38,6 @@ export const Header = ({ highlight, links = homeLinks, id }) => {
 
   const roleLinks = [];
   if (canAccessAdminPanel(user?.role)) roleLinks.push({ label: "Painel", href: "/admin" });
-  if (canAccessBarberPanel(user?.role)) {
-    roleLinks.push({ label: "Barbeiro", href: "/barbeiro" });
-  }
 
   const guardAndNavigate = (event, href, message) => {
     if (token) return;
@@ -49,7 +46,7 @@ export const Header = ({ highlight, links = homeLinks, id }) => {
     navigate(`/login?redirect=${encodeURIComponent(href)}`);
   };
 
-  const protectedHrefs = ["/agendamento", "/perfil", "/admin", "/barbeiro"];
+  const protectedHrefs = ["/agendamento", "/perfil", "/admin"];
 
   const getHeaderOffset = () => {
     const raw = getComputedStyle(document.documentElement).getPropertyValue("--header-height");
