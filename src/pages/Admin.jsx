@@ -24,7 +24,6 @@ import {
   getDashboardOverview,
   getCashClosingPreview,
   getCashClosings,
-  getCommissionRate,
   getCommissions,
   getErrorMessage,
   getIndisponibilidades,
@@ -34,7 +33,6 @@ import {
   normalizeBarber,
   normalizeService,
   updateCommission,
-  updateCommissionRate,
   updateService,
   updateServiceImage,
   updateUserPermissions,
@@ -160,6 +158,7 @@ const Admin = () => {
     name: "",
     price: "",
     duration: "",
+    percentualComissao: "50",
     status: "true",
     file: null
   });
@@ -185,8 +184,6 @@ const Admin = () => {
   const [commissions, setCommissions] = useState([]);
   const [commissionsEmpty, setCommissionsEmpty] = useState(false);
   const [commissionFilters, setCommissionFilters] = useState({ inicio: "", fim: "" });
-  const [commissionRate, setCommissionRate] = useState("");
-  const [commissionApplyAll, setCommissionApplyAll] = useState(false);
 
   const [cashEntries, setCashEntries] = useState([]);
   const [cashEmpty, setCashEmpty] = useState(false);
@@ -417,15 +414,6 @@ const Admin = () => {
     }
   };
 
-  const loadCommissionRate = async () => {
-    try {
-      const data = await getCommissionRate();
-      if (data?.percentual != null) setCommissionRate(String(data.percentual));
-    } catch (error) {
-      toast({ variant: "error", message: getErrorMessage(error) });
-    }
-  };
-
   const loadCash = async () => {
     try {
       const filters = {};
@@ -534,7 +522,6 @@ const Admin = () => {
       if (allowServices) loadServices();
       if (allowCommissions) {
         loadCommissions();
-        loadCommissionRate();
       }
       if (allowCash) {
         loadCash();
@@ -581,6 +568,7 @@ const Admin = () => {
       name: "",
       price: "",
       duration: "",
+      percentualComissao: "50",
       status: "true",
       file: null
     });
@@ -593,6 +581,7 @@ const Admin = () => {
       name: service.name || "",
       price: service.price ?? "",
       duration: service.duration ?? "",
+      percentualComissao: service.percentualComissao ?? "50",
       status: service.status === false ? "false" : "true",
       file: null
     });
@@ -605,10 +594,15 @@ const Admin = () => {
     const name = serviceForm.name.trim();
     const price = Number(String(serviceForm.price).replace(",", "."));
     const duration = Number(serviceForm.duration);
+    const percentualComissao = Number(String(serviceForm.percentualComissao).replace(",", "."));
     const status = serviceForm.status === "true";
 
-    if (!name || !price || !duration) {
-      toast({ variant: "warning", message: "Preencha nome, preco e duracao." });
+    if (!name || !price || !duration || !Number.isFinite(percentualComissao)) {
+      toast({ variant: "warning", message: "Preencha nome, preco, duracao e comissao." });
+      return;
+    }
+    if (percentualComissao < 0 || percentualComissao > 100) {
+      toast({ variant: "warning", message: "Comissao deve estar entre 0 e 100." });
       return;
     }
 
@@ -618,15 +612,19 @@ const Admin = () => {
           name,
           price,
           duracaoEmMinutos: duration,
+          percentualComissao,
           status
         });
         if (serviceForm.file) await updateServiceImage(serviceForm.id, serviceForm.file);
         toast({ variant: "success", message: "Servico atualizado." });
       } else {
         if (serviceForm.file) {
-          await createServiceWithImage({ name, price, duracaoEmMinutos: duration }, serviceForm.file);
+          await createServiceWithImage(
+            { name, price, duracaoEmMinutos: duration, percentualComissao },
+            serviceForm.file
+          );
         } else {
-          await createService({ name, price, duracaoEmMinutos: duration });
+          await createService({ name, price, duracaoEmMinutos: duration, percentualComissao });
         }
         toast({ variant: "success", message: "Servico criado." });
       }
@@ -673,23 +671,6 @@ const Admin = () => {
       setIndForm((prev) => ({ ...prev, inicio: "", fim: "" }));
       loadIndisponibilidades(indForm.barbeiroUsername);
       toast({ variant: "success", message: "Indisponibilidade registrada." });
-    } catch (error) {
-      toast({ variant: "error", message: getErrorMessage(error) });
-    }
-  };
-
-  const handleCommissionRateSave = async () => {
-    const percentual = Number(String(commissionRate || "").replace(",", "."));
-    if (!Number.isFinite(percentual)) {
-      toast({ variant: "warning", message: "Informe um percentual valido." });
-      return;
-    }
-
-    try {
-      await updateCommissionRate({ percentual, aplicarEmTodas: Boolean(commissionApplyAll) });
-      toast({ variant: "success", message: "Taxa global atualizada." });
-      loadCommissions();
-      loadCash();
     } catch (error) {
       toast({ variant: "error", message: getErrorMessage(error) });
     }
@@ -1396,6 +1377,23 @@ const Admin = () => {
                 </div>
 
                 <div className="form-field">
+                  <label htmlFor="service-commission">Comissao (%)</label>
+                  <input
+                    id="service-commission"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="50"
+                    required
+                    value={serviceForm.percentualComissao}
+                    onChange={(event) =>
+                      setServiceForm((prev) => ({ ...prev, percentualComissao: event.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="form-field">
                   <label htmlFor="service-status">Ativo</label>
                   <select
                     id="service-status"
@@ -1445,6 +1443,7 @@ const Admin = () => {
                       <strong>{service.name}</strong>
                       <span>{formatCurrency(service.price)}</span>
                       <span>Duracao: {service.duration || "-"} min</span>
+                      <span>Comissao: {service.percentualComissao ?? 50}%</span>
                     </div>
                     <div className="row-meta">
                       <span className={`tag ${service.status === false ? "tag--danger" : "tag--success"}`}>
@@ -1589,6 +1588,7 @@ const Admin = () => {
         <section className="panel" data-reveal="delay-5">
           <div className="panel-header">
             <h3>Comissoes</h3>
+            <p className="muted">A taxa base e definida em cada servico.</p>
             <div className="panel-actions">
               <input
                 type="date"
@@ -1604,26 +1604,6 @@ const Admin = () => {
                   setCommissionFilters((prev) => ({ ...prev, fim: event.target.value }))
                 }
               />
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                placeholder="Taxa global (%)"
-                value={commissionRate}
-                onChange={(event) => setCommissionRate(event.target.value)}
-              />
-              <label className="inline-check">
-                <input
-                  type="checkbox"
-                  checked={commissionApplyAll}
-                  onChange={(event) => setCommissionApplyAll(event.target.checked)}
-                />
-                Aplicar em todas
-              </label>
-              <button className="ghost-action" type="button" onClick={handleCommissionRateSave}>
-                Atualizar taxa
-              </button>
               <button className="ghost-action" type="button" onClick={loadCommissions}>
                 Filtrar
               </button>

@@ -38,6 +38,8 @@ const roleDefaults = {
   [Roles.USER]: []
 };
 
+const isPrivilegedRole = (role) => role === Roles.ADMIN || role === Roles.DONO;
+
 const normalizeRole = (role) => String(role || "").trim().toUpperCase();
 
 const toPermissionList = (value) => {
@@ -56,6 +58,10 @@ const resolveRole = (context) => {
 
 const resolvePermissionSet = (context) => {
   const role = resolveRole(context);
+  if (isPrivilegedRole(role)) {
+    return new Set(roleDefaults[role] || []);
+  }
+
   const explicitList =
     context && typeof context === "object"
       ? toPermissionList(context.permissoes || context.permissions || [])
@@ -71,6 +77,7 @@ const getRoleDefaultPermissions = (context) => {
 };
 
 const hasPermission = (context, permission) =>
+  isPrivilegedRole(resolveRole(context)) ||
   resolvePermissionSet(context).has(String(permission || "").toUpperCase());
 
 const isOneOf = (context, ...allowed) => {

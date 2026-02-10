@@ -61,15 +61,17 @@ const defaultConfig = {
       role,
       permissoes
     }),
-    serviceCreate: ({ name, price, duracaoEmMinutos }) => ({
-      name,
-      price,
-      duracaoEmMinutos
-    }),
-    serviceUpdate: ({ name, price, duracaoEmMinutos, status }) => ({
+    serviceCreate: ({ name, price, duracaoEmMinutos, percentualComissao }) => ({
       name,
       price,
       duracaoEmMinutos,
+      percentualComissao
+    }),
+    serviceUpdate: ({ name, price, duracaoEmMinutos, percentualComissao, status }) => ({
+      name,
+      price,
+      duracaoEmMinutos,
+      percentualComissao,
       status
     }),
     indisponibilidadeCreate: ({ barbeiroUsername, tipo, inicio, fim }) => ({
@@ -185,6 +187,11 @@ const normalizeService = (service = {}) => {
     price,
     status,
     imageUrl: service.imageUrl || service.imagemUrl || service.image || service.imagem,
+    percentualComissao:
+      service.percentualComissao ??
+      service.taxaComissao ??
+      service.percentual ??
+      null,
     duracaoEmMinutos:
       service.duracaoEmMinutos ||
       service.duracaoMediaEmMinutos ||
@@ -461,6 +468,7 @@ const createServiceWithImage = (payload, file) => {
   formData.append("name", payload.name);
   formData.append("price", payload.price);
   formData.append("duracaoEmMinutos", payload.duracaoEmMinutos);
+  formData.append("percentualComissao", payload.percentualComissao);
   if (file) formData.append("image", file);
   return apiRequestForm(config.endpoints.services, formData, { method: "POST" });
 };
