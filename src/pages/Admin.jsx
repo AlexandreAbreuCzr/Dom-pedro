@@ -289,9 +289,9 @@ const Admin = () => {
     }
 
     const bootstrap = async () => {
-      const me = user || (await refreshUser());
+      const me = await refreshUser();
       if (!me || !canAccessAdminPanel(me.role)) {
-        navigate("/");
+        navigate("/login?redirect=/admin");
         return;
       }
       setActiveUser(me);
@@ -299,7 +299,7 @@ const Admin = () => {
     };
 
     bootstrap();
-  }, [token, user, refreshUser, navigate]);
+  }, [token, refreshUser, navigate]);
 
   const loadUsers = async () => {
     try {
