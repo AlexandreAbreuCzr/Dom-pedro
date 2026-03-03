@@ -1,0 +1,12 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d4f3d"/>
+      <stop offset="100%" stop-color="#1a7a5f"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <rect x="70" y="400" width="660" height="120" rx="20" fill="#f2f5f3"/>
+  <path d="M180 360c58-96 188-122 283-61 53 34 88 88 100 149" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round"/>
+  <text x="70" y="110" fill="#ffffff" font-size="56" font-family="Teko, sans-serif">TREINO TÉCNICO</text>
+</svg>

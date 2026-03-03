@@ -1,0 +1,20 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Sensei e alunos</title>
+  <desc id="desc">Imagem estilizada para representar turma em treino guiado.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a3f31"/>
+      <stop offset="100%" stop-color="#146951"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="760" fill="url(#bg)"/>
+  <rect x="80" y="500" width="1040" height="140" rx="30" fill="#f4f7f5"/>
+  <circle cx="600" cy="250" r="110" fill="#ffffff"/>
+  <circle cx="360" cy="320" r="85" fill="#dff6ec"/>
+  <circle cx="840" cy="320" r="85" fill="#dff6ec"/>
+  <rect x="500" y="360" width="200" height="220" rx="34" fill="#ffffff"/>
+  <rect x="285" y="390" width="150" height="190" rx="28" fill="#f4f7f5"/>
+  <rect x="765" y="390" width="150" height="190" rx="28" fill="#f4f7f5"/>
+  <rect x="540" y="435" width="120" height="20" rx="10" fill="#d13333"/>
+  <text x="92" y="118" fill="#ffffff" font-size="62" font-family="Teko, sans-serif" letter-spacing="4">EQUIPE JUDÔ CANDÓI</text>
+</svg>

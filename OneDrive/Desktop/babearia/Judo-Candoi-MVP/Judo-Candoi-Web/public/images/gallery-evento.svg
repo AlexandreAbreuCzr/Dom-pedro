@@ -1,0 +1,14 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a2b24"/>
+      <stop offset="100%" stop-color="#175743"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <rect x="70" y="400" width="660" height="120" rx="20" fill="#f2f5f3"/>
+  <circle cx="250" cy="260" r="70" fill="#ffffff"/>
+  <circle cx="400" cy="260" r="70" fill="#ffffff"/>
+  <circle cx="550" cy="260" r="70" fill="#ffffff"/>
+  <text x="70" y="110" fill="#ffffff" font-size="56" font-family="Teko, sans-serif">EVENTO</text>
+</svg>
