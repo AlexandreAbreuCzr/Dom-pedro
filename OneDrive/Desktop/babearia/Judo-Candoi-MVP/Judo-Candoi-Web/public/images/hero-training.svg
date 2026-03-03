@@ -1,0 +1,23 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Treino no tatame</title>
+  <desc id="desc">Ilustração do treino de judô com energia de competição.</desc>
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#04241b"/>
+      <stop offset="100%" stop-color="#10644f"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c52828"/>
+      <stop offset="100%" stop-color="#f06060"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="760" fill="url(#g1)"/>
+  <circle cx="980" cy="120" r="150" fill="rgba(255,255,255,0.08)"/>
+  <circle cx="200" cy="640" r="220" fill="rgba(255,255,255,0.08)"/>
+  <rect x="90" y="560" width="1020" height="110" rx="24" fill="#f4f7f5"/>
+  <rect x="90" y="560" width="510" height="110" rx="24" fill="url(#g2)" opacity="0.86"/>
+  <path d="M420 270c60-88 178-120 274-74 86 40 143 129 146 223" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round"/>
+  <path d="M336 456c26-120 110-214 218-244" fill="none" stroke="#f4f7f5" stroke-width="18" stroke-linecap="round" opacity="0.65"/>
+  <text x="90" y="112" fill="#ffffff" font-size="70" font-family="Teko, sans-serif" letter-spacing="4">JUDÔ CANDÓI</text>
+  <text x="90" y="170" fill="#d3efe4" font-size="36" font-family="Barlow, sans-serif">Mais que judô. Disciplina para a vida.</text>
+</svg>
