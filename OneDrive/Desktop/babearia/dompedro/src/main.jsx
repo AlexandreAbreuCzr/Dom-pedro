@@ -10,9 +10,16 @@ import "./styles/variables.css";
 import "./styles/layout.css";
 import "./styles/components.css";
 
+const redirectParam = new URLSearchParams(window.location.search).get("p");
+if (redirectParam) {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const target = redirectParam.startsWith("/") ? redirectParam : `/${redirectParam}`;
+  window.history.replaceState(null, "", `${base}${target}`);
+}
+
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <ToastProvider>
           <App />

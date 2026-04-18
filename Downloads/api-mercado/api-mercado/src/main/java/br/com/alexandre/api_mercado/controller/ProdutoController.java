@@ -1,9 +1,8 @@
 package br.com.alexandre.api_mercado.controller;
 
-import br.com.alexandre.api_mercado.dto.ProdutoCreateDTO;
-import br.com.alexandre.api_mercado.dto.ProdutoResponseDTO;
-import br.com.alexandre.api_mercado.repository.ProdutoRepository;
+import br.com.alexandre.api_mercado.dto.*;
 import br.com.alexandre.api_mercado.service.ProdutoService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,46 +13,74 @@ import java.util.List;
 @RestController
 @RequestMapping("/produtos")
 public class ProdutoController {
+
     @Autowired
     private ProdutoService produtoService;
 
+    @PostMapping
+    public ResponseEntity<ProdutoResponseDTO> create(
+            @RequestBody @Valid ProdutoCreateDTO dto) {
 
-    @PostMapping("/add")
-    public ResponseEntity<?> add(@RequestBody ProdutoCreateDTO params){
-        try {
-            var result = produtoService.save(params);
-            return ResponseEntity.ok(result);
-        }catch (IllegalArgumentException e){
-            return ResponseEntity.status(400).body(e.getMessage());
-        }
+        return ResponseEntity.status(201).body(produtoService.save(dto));
     }
 
-    @GetMapping("/get/{id}")
-    public ResponseEntity<?> getById(@PathVariable Long id){
-        try {
-            var result = produtoService.findById(id);
-            return ResponseEntity.ok(result);
-        }catch (RuntimeException e){
-            return ResponseEntity.status(400).body(e.getMessage());
-        }
-
+    @GetMapping("/{id}")
+    public ResponseEntity<ProdutoResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(produtoService.findById(id));
     }
 
-    @GetMapping("/get")
-    public List<ProdutoResponseDTO> get(@RequestParam(required = false) String name, @RequestParam(required = false) BigDecimal price){
-        if(name != null && price != null){
-            throw new IllegalArgumentException("Use apenas um filtro por vez");
-        }
+    @GetMapping
+    public ResponseEntity<List<ProdutoResponseDTO>> getAll() {
+        return ResponseEntity.ok(produtoService.getAll());
+    }
 
-        if (name !=null){
-            return produtoService.findByName(name);
-        }
+    @GetMapping("/nome/{name}")
+    public ResponseEntity<List<ProdutoResponseDTO>> getByName(@PathVariable String name) {
+        return ResponseEntity.ok(produtoService.findByName(name));
+    }
 
-        if (price != null){
-            return produtoService.findByPrice(price);
-        }
+    @GetMapping("/preco/{price}")
+    public ResponseEntity<List<ProdutoResponseDTO>> getByPrice(@PathVariable BigDecimal price) {
+        return ResponseEntity.ok(produtoService.findByPrice(price));
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id){
+        produtoService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 
-        return produtoService.getAll();
+    @PutMapping("/{id}")
+    public ResponseEntity<ProdutoResponseDTO> update(
+            @PathVariable Long id,
+            @RequestBody @Valid ProdutoUpdateDTO dto) {
+
+        return ResponseEntity.ok(produtoService.update(id, dto));
+    }
+
+
+    @PatchMapping("/{id}/price")
+    public ResponseEntity<ProdutoResponseDTO> updatePrice(
+            @PathVariable Long id,
+            @RequestBody @Valid ProdutoUpdatePriceDTO dto) {
+
+        return ResponseEntity.ok(produtoService.updatePrice(id, dto));
+    }
+
+    @PatchMapping("/{id}/name")
+    public ResponseEntity<ProdutoResponseDTO> updateName(
+            @PathVariable Long id,
+            @RequestBody @Valid ProdutoUpdateNameDTO dto) {
+
+        return ResponseEntity.ok(produtoService.updateName(id, dto));
+    }
+
+    @PatchMapping("/{id}/categoria")
+    public ResponseEntity<ProdutoResponseDTO> updateCategoria(
+            @PathVariable Long id,
+            @RequestBody @Valid ProdutoUpdateCategoriaDTO dto) {
+
+        return ResponseEntity.ok(produtoService.updateCategoria(id, dto));
     }
 
 }
+

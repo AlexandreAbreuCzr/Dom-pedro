@@ -111,7 +111,7 @@ const Barber = () => {
 
   const getServiceName = (serviceId) => {
     const service = services.find((item) => String(item.id) === String(serviceId));
-    return service?.name || (serviceId ? `Serviço #${serviceId}` : "Serviço");
+    return service?.name || (serviceId ? `ServiÃ§o #${serviceId}` : "ServiÃ§o");
   };
 
   const loadAppointments = async (currentUser) => {

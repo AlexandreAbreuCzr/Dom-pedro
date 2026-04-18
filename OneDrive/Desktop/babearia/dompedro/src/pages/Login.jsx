@@ -14,7 +14,9 @@ const Login = () => {
   const [formError, setFormError] = useState("");
   const [resetError, setResetError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const resetBusy = sendingCode || resetSubmitting;
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -23,7 +25,7 @@ const Login = () => {
     const loginValue = formData.get("login")?.toString().trim();
     const password = formData.get("password")?.toString();
     if (!loginValue || !password) {
-      setFormError("Informe usuario/email e senha.");
+      setFormError("Informe usuário/e-mail e senha.");
       return;
     }
     try {
@@ -44,17 +46,17 @@ const Login = () => {
     const form = event.currentTarget.closest("form");
     const email = form?.querySelector("[name='reset-email']")?.value?.trim();
     if (!email) {
-      setResetError("Informe o email para enviar o codigo.");
+      setResetError("Informe o e-mail para enviar o código.");
       return;
     }
     try {
-      setResetLoading(true);
+      setSendingCode(true);
       await requestPasswordReset({ email });
-      toast({ variant: "success", message: "Codigo enviado para o email informado." });
+      toast({ variant: "success", message: "Código enviado para o e-mail informado." });
     } catch (error) {
       setResetError(getErrorMessage(error));
     } finally {
-      setResetLoading(false);
+      setSendingCode(false);
     }
   };
 
@@ -66,18 +68,18 @@ const Login = () => {
     const code = formData.get("reset-code")?.toString().trim();
     const newPassword = formData.get("reset-password")?.toString().trim();
     if (!email || !code || !newPassword) {
-      setResetError("Preencha email, codigo e nova senha.");
+      setResetError("Preencha e-mail, código e nova senha.");
       return;
     }
     try {
-      setResetLoading(true);
+      setResetSubmitting(true);
       await resetPassword({ email, code, newPassword });
       toast({ variant: "success", message: "Senha atualizada. Faça login." });
       event.currentTarget.reset();
     } catch (error) {
       setResetError(getErrorMessage(error));
     } finally {
-      setResetLoading(false);
+      setResetSubmitting(false);
     }
   };
 
@@ -100,7 +102,7 @@ const Login = () => {
 
         <form className="login-form" onSubmit={handleLogin}>
           <div className="input-group">
-            <label htmlFor="login">Usuário ou email</label>
+            <label htmlFor="login">Usuário ou e-mail</label>
             <input
               type="text"
               id="login"
@@ -122,7 +124,7 @@ const Login = () => {
 
         <div className="reset-card">
           <h3>Esqueceu a senha?</h3>
-          <p>Receba um codigo por email e redefina sua senha.</p>
+          <p>Receba um código por e-mail e redefina sua senha.</p>
           <div className={`form-error ${resetError ? "visible" : ""}`} role="alert">
             {resetError}
           </div>
@@ -139,7 +141,7 @@ const Login = () => {
             </div>
 
             <div className="input-group">
-              <label htmlFor="reset-code">Codigo</label>
+              <label htmlFor="reset-code">Código</label>
               <input type="text" id="reset-code" name="reset-code" placeholder="000000" />
             </div>
 
@@ -149,11 +151,11 @@ const Login = () => {
             </div>
 
             <div className="reset-actions">
-              <button type="button" className="ghost-action" onClick={handleResetSend} disabled={resetLoading}>
-                {resetLoading ? "Enviando..." : "Enviar codigo"}
+              <button type="button" className="ghost-action" onClick={handleResetSend} disabled={resetBusy}>
+                {sendingCode ? "Enviando..." : "Enviar código"}
               </button>
-              <button type="submit" disabled={resetLoading}>
-                {resetLoading ? "Atualizando..." : "Atualizar senha"}
+              <button type="submit" disabled={resetBusy}>
+                {resetSubmitting ? "Atualizando..." : "Atualizar senha"}
               </button>
             </div>
           </form>

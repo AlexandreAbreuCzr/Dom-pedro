@@ -883,7 +883,7 @@ const Admin = () => {
                   <div className="row-main">
                     <strong>{item.descricao}</strong>
                     <span>{item.barbeiroUsername ? `@${item.barbeiroUsername}` : "Sem barbeiro"}</span>
-                    <span>{item.agendamentoId ? `Agendamento ${item.agendamentoId}` : "Lançamento manual"}</span>
+                    <span>{item.agendamentoId ? `Agendamento ${item.agendamentoId}` : "LanÃ§amento manual"}</span>
                   </div>
                   <div className="row-meta">
                     <span className={`tag ${item.tipo === "ENTRADA" ? "tag--success" : "tag--danger"}`}>

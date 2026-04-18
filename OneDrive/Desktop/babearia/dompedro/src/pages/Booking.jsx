@@ -21,7 +21,7 @@ import {
 } from "../lib/api.js";
 
 const fallbackServices = [
-  { id: 1, name: "Corte Masculino", description: "Corte moderno ou cl�ssico.", price: 45 },
+  { id: 1, name: "Corte Masculino", description: "Corte moderno ou clássico.", price: 45 },
   { id: 2, name: "Barba", description: "Modelagem com toalha quente.", price: 25 },
   { id: 3, name: "Sobrancelha", description: "Design e alinhamento.", price: 15 }
 ];
@@ -72,7 +72,7 @@ const Booking = () => {
     hora: ""
   });
   const [loading, setLoading] = useState(false);
-  const [note, setNote] = useState("Selecione servi�o e hor�rio.");
+  const [note, setNote] = useState("Selecione serviço e horário.");
   const [serviceDuration, setServiceDuration] = useState("");
 
   useEffect(() => {
@@ -83,9 +83,9 @@ const Booking = () => {
 
   const updateNote = (servicesCount, barbersCount) => {
     const parts = [];
-    if (servicesCount) parts.push(`${servicesCount} servi�os dispon�veis`);
-    if (barbersCount) parts.push(`${barbersCount} profissionais dispon�veis`);
-    setNote(parts.length ? `${parts.join(" | ")}.` : "Selecione servi�o e hor�rio.");
+    if (servicesCount) parts.push(`${servicesCount} serviços disponíveis`);
+    if (barbersCount) parts.push(`${barbersCount} profissionais disponíveis`);
+    setNote(parts.length ? `${parts.join(" | ")}.` : "Selecione serviço e horário.");
   };
 
   const updateDuration = (serviceId, serviceList) => {
@@ -97,7 +97,7 @@ const Booking = () => {
     const durationValue = Number(found?.duracaoEmMinutos ?? found?.duration);
     setServiceDuration(
       Number.isFinite(durationValue) && durationValue > 0
-        ? `Duracao media: ${durationValue} min`
+        ? `Duração média: ${durationValue} min`
         : ""
     );
   };
@@ -239,7 +239,7 @@ const Booking = () => {
 
   const serviceNameFor = (serviceId) => {
     const found = services.find((service) => String(service.id) === String(serviceId));
-    return found?.name || (serviceId ? `Servi�o #${serviceId}` : "Servi�o");
+    return found?.name || (serviceId ? `Serviço #${serviceId}` : "Serviço");
   };
 
   const appointmentsEmptyMessage = token
@@ -302,7 +302,7 @@ const Booking = () => {
             <h3>Regras de agendamento</h3>
             <ul>
               <li>Agendamentos precisam de pelo menos 15 minutos de antecedência.</li>
-              <li>Não é permitido agendar para domingo.</li>
+              <li>Não ? permitido agendar para domingo.</li>
               <li>Horários disponíveis: 09h às 12h e 13h às 20h.</li>
               <li>Datas passadas não são permitidas.</li>
             </ul>
@@ -330,9 +330,9 @@ const Booking = () => {
               </div>
 
               <div className="form-field">
-                <label htmlFor="Servi�o">Serviço</label>
+                <label htmlFor="Serviço">Serviço</label>
                 <select
-                  id="Servi�o"
+                  id="Serviço"
                   value={formState.servicoId}
                   onChange={(event) =>
                     setFormState((prev) => ({ ...prev, servicoId: event.target.value }))

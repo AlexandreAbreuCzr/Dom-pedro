@@ -1,11 +1,13 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer.jsx";
 import { Header } from "../components/Header.jsx";
 import { SideNav } from "../components/SideNav.jsx";
 import { useToast } from "../components/ToastProvider.jsx";
 import { useAuth } from "../lib/auth.jsx";
 import { config, formatCurrency, getServices, normalizeService, getReviews, createReview } from "../lib/api.js";
+
+const assetBase = import.meta.env.BASE_URL;
 
 const fallbackServices = [
   { id: 1, name: "Corte Masculino", description: "Corte moderno ou clássico.", price: 45 },
@@ -17,20 +19,33 @@ const fallbackServices = [
 ];
 
 const iconRules = [
-  { match: /barba/i, icon: "/assets/icons/beard.svg" },
-  { match: /sobrancelha/i, icon: "/assets/icons/brow.svg" },
-  { match: /pigment|color|platin|tinta|tonal/i, icon: "/assets/icons/color.svg" },
-  { match: /relax|progress|alis/i, icon: "/assets/icons/clipper.svg" },
-  { match: /corte|cabelo/i, icon: "/assets/icons/scissors.svg" }
+  { match: /barba/i, icon: `${assetBase}assets/icons/beard.svg` },
+  { match: /sobrancelha/i, icon: `${assetBase}assets/icons/brow.svg` },
+  { match: /pigment|color|platin|tinta|tonal/i, icon: `${assetBase}assets/icons/color.svg` },
+  { match: /relax|progress|alis/i, icon: `${assetBase}assets/icons/clipper.svg` },
+  { match: /corte|cabelo/i, icon: `${assetBase}assets/icons/scissors.svg` }
 ];
 
-const resolveIcon = (name = "", imageUrl) => {
-  if (imageUrl) {
-    const base = config?.baseUrl?.replace(/\/$/, "") || "";
-    return imageUrl.startsWith("http") ? imageUrl : `${base}${imageUrl}`;
-  }
+const getFallbackIcon = (name = "") => {
   const rule = iconRules.find((item) => item.match.test(name));
-  return rule ? rule.icon : "/assets/icons/clipper.svg";
+  return rule ? rule.icon : `${assetBase}assets/icons/clipper.svg`;
+};
+
+const resolveServiceImage = (name = "", imageUrl) => {
+  const fallback = getFallbackIcon(name);
+  if (!imageUrl || typeof imageUrl !== "string") return fallback;
+  const cleaned = imageUrl.trim();
+  if (!cleaned || cleaned.toLowerCase() === "null") return fallback;
+  const base = config?.baseUrl?.replace(/\/$/, "") || "";
+  const normalized = cleaned.startsWith("http")
+    ? cleaned
+    : `${base}/${cleaned.replace(/^\/+/, "")}`;
+  return normalized || fallback;
+};
+
+const handleServiceImageError = (event, name) => {
+  event.currentTarget.onerror = null;
+  event.currentTarget.src = getFallbackIcon(name);
 };
 
 const useScrollSpy = () => {
@@ -71,6 +86,12 @@ const Home = () => {
   const [services, setServices] = useState([]);
   const [statusMessage, setStatusMessage] = useState("Carregando serviços da API...");
   const [reviews, setReviews] = useState([]);
+  const warnedRef = useRef(false);
+  const toastRef = useRef(toast);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const viewportRef = useRef(null);
   const trackRef = useRef(null);
@@ -101,6 +122,7 @@ const Home = () => {
   }, [services]);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setStatusMessage("Carregando serviços da API...");
       try {
@@ -110,19 +132,28 @@ const Home = () => {
           .map(normalizeService)
           .filter((item) => item.name && item.status !== false);
         if (!normalized.length) throw new Error("Lista vazia");
+        if (cancelled) return;
         setServices(normalized);
         setStatusMessage(`${normalized.length} serviços disponíveis.`);
+        warnedRef.current = false;
       } catch (error) {
+        if (cancelled) return;
         setServices(fallbackServices);
         setStatusMessage("Não foi possível conectar com a API. Exibindo serviços padrão.");
-        toast({
-          variant: "warning",
-          message: "API indisponível no momento. Usando serviços padrão."
-        });
+        if (!warnedRef.current) {
+          warnedRef.current = true;
+          toastRef.current({
+            variant: "warning",
+            message: "API indisponível no momento. Usando serviços padrão."
+          });
+        }
       }
     };
     load();
-  }, [toast]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const loadReviews = async () => {
@@ -202,20 +233,24 @@ const Home = () => {
               {serviceList.map((service) => (
                 <article key={service.id} className="service-card">
                   <div className="service-thumb">
-                    <img src={resolveIcon(service.name, service.imageUrl)} alt={service.name} />
+                    <img
+                      src={resolveServiceImage(service.name, service.imageUrl)}
+                      alt={service.name}
+                      onError={(event) => handleServiceImageError(event, service.name)}
+                    />
                   </div>
                   <div className="service-info">
                     <h3>{service.name}</h3>
                     <p>{service.description}</p>
                     <div className="service-footer">
                       <strong>{formatCurrency(service.price)}</strong>
-                      <a
+                      <Link
                         className="service-cta"
-                        href="/agendamento"
+                        to="/agendamento"
                         onClick={(event) => handleProtected(event, "/agendamento")}
                       >
                         Agendar
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </article>
@@ -255,9 +290,13 @@ const Home = () => {
               <li>Produtos premium com tratamento para couro e barba.</li>
               <li>Agendamento rápido, com horários sob medida.</li>
             </ul>
-            <a className="text-link" href="/agendamento" onClick={(event) => handleProtected(event, "/agendamento")}>
+            <Link
+              className="text-link"
+              to="/agendamento"
+              onClick={(event) => handleProtected(event, "/agendamento")}
+            >
               Quero agendar
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -270,7 +309,7 @@ const Home = () => {
           <div className="info-grid">
             <article className="info-card" data-reveal="delay-1">
               <div className="info-title">
-                <img src="/assets/icons/map-pin.svg" alt="" aria-hidden="true" />
+                <img src={`${assetBase}assets/icons/map-pin.svg`} alt="" aria-hidden="true" />
                 <h3>Localização</h3>
               </div>
               <p>R. Manoel Lopes de Oliveira</p>
@@ -279,7 +318,7 @@ const Home = () => {
 
             <article className="info-card" data-reveal="delay-2">
               <div className="info-title">
-                <img src="/assets/icons/clock.svg" alt="" aria-hidden="true" />
+                <img src={`${assetBase}assets/icons/clock.svg`} alt="" aria-hidden="true" />
                 <h3>Horário</h3>
               </div>
               <p>Seg a Sex: 09h às 20h</p>
@@ -289,7 +328,7 @@ const Home = () => {
 
             <article className="info-card" data-reveal="delay-3">
               <div className="info-title">
-                <img src="/assets/icons/phone.svg" alt="" aria-hidden="true" />
+                <img src={`${assetBase}assets/icons/phone.svg`} alt="" aria-hidden="true" />
                 <h3>Contato</h3>
               </div>
               <p>(42) 99960-1678</p>
@@ -328,10 +367,12 @@ const Home = () => {
             </article>
             {reviews.map((review, index) => (
               <article className="review-card" key={`${review.nome || review.name}-${index}`}>
-                <div className="review-header">
-                  <span className="review-name">{review.nome || review.name}</span>
-                  <span className="review-stars">{starsFor(review.nota ?? review.rating)}</span>
-                </div>
+                  <div className="review-header">
+                    <span className="review-name">{review.nome || review.name}</span>
+                    <span className="review-stars">
+                      {starsFor(review.nota ?? review.rating)}
+                    </span>
+                  </div>
                 <p>{review.comentario || review.message}</p>
               </article>
             ))}
@@ -382,13 +423,13 @@ const Home = () => {
         <section className="booking" id="booking" data-reveal>
           <h2>Agendamento</h2>
           <p>Escolha o melhor dia, horário e finalize em poucos cliques.</p>
-          <a
+          <Link
             className="booking-button"
-            href="/agendamento"
+            to="/agendamento"
             onClick={(event) => handleProtected(event, "/agendamento")}
           >
             Agendar
-          </a>
+          </Link>
           <span className="booking-note">Disponível para clientes logados com a API Barberia.</span>
         </section>
       </main>

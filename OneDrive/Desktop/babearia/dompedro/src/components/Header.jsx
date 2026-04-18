@@ -1,7 +1,9 @@
-﻿import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
 import { useToast } from "./ToastProvider";
+
+const assetBase = import.meta.env.BASE_URL;
 
 const getInitials = (user) => {
   const raw = user?.nome || user?.name || user?.username || user?.email || "";
@@ -9,7 +11,7 @@ const getInitials = (user) => {
   if (!trimmed) return "DP";
 
   const normalized = trimmed.includes("@") ? trimmed.split("@")[0] : trimmed;
-  const parts = normalized.split(/[.\-_\\s]+/).filter(Boolean);
+  const parts = normalized.split(/[.\-_\s]+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
@@ -54,17 +56,17 @@ export const Header = ({ highlight, links = homeLinks, id }) => {
     return Number.isFinite(value) ? value : 0;
   };
 
-  const scrollToId = (event, id) => {
+  const scrollToId = (event, sectionId) => {
     event.preventDefault();
-    const target = document.getElementById(id);
+    const target = document.getElementById(sectionId);
     if (target) {
       const offset = getHeaderOffset();
       const top = target.getBoundingClientRect().top + window.scrollY - offset - 16;
       window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-      window.history.replaceState(null, "", `#${id}`);
+      window.history.replaceState(null, "", `#${sectionId}`);
       return;
     }
-    window.location.hash = `#${id}`;
+    window.location.hash = `#${sectionId}`;
   };
 
   const renderLink = (link) => {
@@ -118,7 +120,9 @@ export const Header = ({ highlight, links = homeLinks, id }) => {
           ))}
           {roleLinks.map((link) => (
             <li key={link.href}>
-              <Link to={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
+              <Link to={link.href} onClick={() => setMenuOpen(false)}>
+                {link.label}
+              </Link>
             </li>
           ))}
         </ul>
@@ -134,17 +138,21 @@ export const Header = ({ highlight, links = homeLinks, id }) => {
             <span className="user-initial" data-auth-initial hidden={!token}>
               {getInitials(user)}
             </span>
-            <img src="/assets/icons/user.svg" alt="" hidden={Boolean(token)} />
+            <img src={`${assetBase}assets/icons/user.svg`} alt="" hidden={Boolean(token)} />
           </Link>
 
-          <button className="menu-btn" aria-label="Abrir menu" type="button" aria-controls="primary-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen((prev) => !prev)}>
-            <img src="/assets/icons/menu.svg" alt="" />
+          <button
+            className="menu-btn"
+            aria-label="Abrir menu"
+            type="button"
+            aria-controls="primary-navigation"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((prev) => !prev)}
+          >
+            <img src={`${assetBase}assets/icons/menu.svg`} alt="" />
           </button>
         </div>
       </nav>
     </header>
   );
 };
-
-
-

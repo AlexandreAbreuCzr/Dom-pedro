@@ -4,6 +4,6 @@ import br.com.alexandre.api_mercado.model.UserRole;
 
 public record RegisterDTO(
         String name,
-        String passworld,
+        String password,
         UserRole role
 ) {}
